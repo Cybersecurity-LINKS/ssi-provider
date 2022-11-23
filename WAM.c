@@ -411,12 +411,14 @@ uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uin
 	//iota_crypto_randombytes(nonce, NONCE_SIZE);
 	//err |= crypto_secretbox_easy(ciphertext, plaintext, plain_len, nonce, channel->PSK->data);
 	//cipher_len = plain_len + ENCMAC_SIZE;
-
+NONCE_SIZE
 	// build message
 	memcpy(msg, wam_tag, WAM_TAG_SIZE);
-	memcpy(msg + WAM_TAG_SIZE, nonce, NONCE_SIZE);
-	memcpy(msg + WAM_TAG_SIZE + NONCE_SIZE, ciphertext, cipher_len);
-	*msg_len = cipher_len + WAM_TAG_SIZE + NONCE_SIZE;
+	memcpy(msg + WAM_TAG_SIZE, plaintext, plain_len);
+	*msg_len = plain_len + WAM_TAG_SIZE ;
+	//memcpy(msg + WAM_TAG_SIZE, nonce, NONCE_SIZE);
+	//memcpy(msg + WAM_TAG_SIZE + NONCE_SIZE, ciphertext, cipher_len);
+	//*msg_len = cipher_len + WAM_TAG_SIZE + NONCE_SIZE;
 
 //fprintf(stdout, "SENT - PUBK:\n"); print_raw_hex(channel->current_index.keys.pub, PUBK_SIZE);
 //fprintf(stdout, "SENT - NIDX:\n"); print_raw_hex(channel->next_index.index, INDEX_SIZE);

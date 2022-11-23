@@ -52,8 +52,8 @@
 // Utils
 #define SEED_SIZE             (32)   // =IOTA_SEED_BYTES, =ED25519_ADDRESS_BYTES
 #define PRIK_SIZE             (64)   // =ED_PRIVATE_KEY_BYTES
-#define PSK_SIZE              (32)   // =crypto_secretbox_KEYBYTES
-#define NONCE_SIZE            (24)   // =crypto_secretbox_NONCEBYTES
+//#define PSK_SIZE              (32)   // =crypto_secretbox_KEYBYTES
+//#define NONCE_SIZE            (24)   // =crypto_secretbox_NONCEBYTES
 #define ENCMAC_SIZE           (16)   // =crypto_secretbox_MACBYTES
 #define WAM_TAG_SIZE          (32)   // =customizable
 
