@@ -39,8 +39,8 @@ uint8_t set_channel_current_index(WAM_channel* channel, uint8_t* index_bin);
 void print_raw_hex(uint8_t* array, uint16_t array_len);
 
 
-uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpoint, WAM_Key* PSK, WAM_AuthCtx* auth) {
-	if((channel == NULL) || (endpoint == NULL) || (PSK == NULL) || (auth == NULL)) return WAM_ERR_NULL; 
+uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpoint) {
+	if((channel == NULL) || (endpoint == NULL)) return WAM_ERR_NULL; 
 	if(id < 0) return WAM_ERR_CH_INIT;
 
 
@@ -49,15 +49,15 @@ uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpo
 	memset(channel->buff_hex_index, 0, INDEX_HEX_SIZE);
 	
 	// Init Index
-	generate_iota_index(&(channel->start_index));
-	generate_iota_index(&(channel->next_index));
-	copy_iota_index(&(channel->current_index), &(channel->start_index));
+	generate_iota_index(&(channel->currwnt_index));
+	//generate_iota_index(&(channel->next_index));
+	//copy_iota_index(&(channel->current_index), &(channel->start_index));
 
 	// Set fields
 	channel->id = id;
 	channel->node = endpoint;
-	channel->PSK = PSK;
-	channel->auth = auth;
+	//channel->PSK = PSK;
+	//channel->auth = auth;
 	channel->sent_msg = 0;
 	channel->recv_msg = 0;
 	channel->sent_bytes = 0;
@@ -344,11 +344,11 @@ uint8_t WAM_write(WAM_channel* channel, uint8_t* inData, uint16_t inDataSize, bo
 
 	if((channel == NULL) || (inData == NULL)) return WAM_ERR_NULL;
 
-
+	//fragmentation?
 	messages = get_messages_number(inDataSize);
 	for(i = 0; i < messages; i++) {
 		s = (inDataSize - sent_data) > (DATA_SIZE) ? (DATA_SIZE) : (inDataSize - sent_data);
-
+		//da rifare la finalize
 		if((finalize == true) && (i == messages - 1)) {
 			reset_index(&(channel->next_index));
 		}
@@ -356,7 +356,7 @@ uint8_t WAM_write(WAM_channel* channel, uint8_t* inData, uint16_t inDataSize, bo
 		create_wam_msg(channel, d, s, msg_to_send, &msg_len);  // == wrap
 
 		if(send_wam_message(channel, msg_to_send, msg_len) == WAM_OK) {
-			update_channel_indexes(channel);
+			//update_channel_indexes(channel);
 			d += s;
 			sent_data += s;
 			channel->sent_bytes += s;
@@ -372,29 +372,30 @@ uint8_t WAM_write(WAM_channel* channel, uint8_t* inData, uint16_t inDataSize, bo
 uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uint8_t* msg, uint16_t* msg_len) {
 	uint8_t tmp_data[WAM_MSG_PLAIN_SIZE];
 	uint8_t plaintext[WAM_MSG_PLAIN_SIZE];
-	uint8_t ciphertext[WAM_MSG_CIPH_SIZE];
-	uint8_t AuthSign[AUTH_SIZE];
+	//uint8_t ciphertext[WAM_MSG_CIPH_SIZE];
+	//uint8_t AuthSign[AUTH_SIZE];
 	uint8_t signature[SIGN_SIZE];
-	uint8_t nonce[NONCE_SIZE];
+	//uint8_t nonce[NONCE_SIZE];
 	uint8_t err = 0;
-	size_t plain_len = 0, cipher_len = 0;
+	size_t plain_len = 0;//, cipher_len = 0;
 
 
 	// init
 	memset(tmp_data, 0, WAM_MSG_PLAIN_SIZE);
 	memset(plaintext, 0, WAM_MSG_PLAIN_SIZE);
-	memset(ciphertext, 0, WAM_MSG_CIPH_SIZE);
-	memset(AuthSign, 0, AUTH_SIZE);
+	//memset(ciphertext, 0, WAM_MSG_CIPH_SIZE);
+	//memset(AuthSign, 0, AUTH_SIZE);
 	memset(signature, 0, SIGN_SIZE);
 	
 	// copy data fields
 	_SET16(plaintext, WAM_OFFSET_DLEN, data_len);
 	_SET256(plaintext, WAM_OFFSET_PUBK, channel->current_index.keys.pub);
-	_SET256(plaintext, WAM_OFFSET_NIDX, channel->next_index.index);
+	//_SET256(plaintext, WAM_OFFSET_NIDX, channel->next_index.index);
 
+    //OLD
 	// compute authentication signature
-	err |= sign_auth_do(data, data_len, channel->auth, AuthSign, AUTH_SIZE);
-	_SET512(plaintext, WAM_OFFSET_AUTH, AuthSign);
+	//err |= sign_auth_do(data, data_len, channel->auth, AuthSign, AUTH_SIZE);
+	//_SET512(plaintext, WAM_OFFSET_AUTH, AuthSign);
 
 	// compute signature
 	memcpy(tmp_data, plaintext, WAM_OFFSET_SIGN);
@@ -406,16 +407,10 @@ uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uin
 	memcpy(plaintext + WAM_OFFSET_DATA, data, data_len);
 	plain_len = data_len + WAM_MSG_HEADER_SIZE;
 
-	// encryption
-#if 1
-	iota_crypto_randombytes(nonce, NONCE_SIZE);
-	err |= crypto_secretbox_easy(ciphertext, plaintext, plain_len, nonce, channel->PSK->data);
-#else
-	memset(nonce, 1, NONCE_SIZE);
-	memcpy(ciphertext, plaintext, plain_len);
-	memset(ciphertext + plain_len, 0x40, ENCMAC_SIZE);
-#endif
-	cipher_len = plain_len + ENCMAC_SIZE;
+	// OLD
+	//iota_crypto_randombytes(nonce, NONCE_SIZE);
+	//err |= crypto_secretbox_easy(ciphertext, plaintext, plain_len, nonce, channel->PSK->data);
+	//cipher_len = plain_len + ENCMAC_SIZE;
 
 	// build message
 	memcpy(msg, wam_tag, WAM_TAG_SIZE);

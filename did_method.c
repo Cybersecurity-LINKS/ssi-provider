@@ -358,11 +358,11 @@ int did_ott_create(method *methods, char* did_new) {
 
     uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
     WAM_channel ch_send;
-    WAM_AuthCtx a;
-    a.type = AUTHS_NONE;
-    WAM_Key k;
-    k.data = mykey;
-    k.data_len = (uint16_t) strlen((char *) mykey);
+    //WAM_AuthCtx a;
+    //a.type = AUTHS_NONE;
+    //WAM_Key k;
+   // k.data = mykey;
+    //k.data_len = (uint16_t) strlen((char *) mykey);
 
     fprintf(stdout, "CREATE\n");
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",

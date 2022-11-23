@@ -58,13 +58,17 @@
 #define WAM_TAG_SIZE          (32)   // =customizable
 
 #define BLAKE2B_HASH_SIZE     (32)   // =CRYPTO_BLAKE2B_HASH_BYTES
-
+//OLD
 // Message
-#define WAM_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE + AUTH_SIZE + DLEN_SIZE)
+//#define WAM_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE + AUTH_SIZE + DLEN_SIZE)
+//#define WAM_MSG_PLAIN_SIZE        (WAM_MSG_HEADER_SIZE + DATA_SIZE)
+//#define WAM_MSG_CIPH_SIZE         (WAM_MSG_PLAIN_SIZE + ENCMAC_SIZE)
+//#define WAM_MSG_SIZE              (WAM_MSG_CIPH_SIZE + NONCE_SIZE + WAM_TAG_SIZE)
+// Message
+#define WAM_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE  + DLEN_SIZE)
 #define WAM_MSG_PLAIN_SIZE        (WAM_MSG_HEADER_SIZE + DATA_SIZE)
-#define WAM_MSG_CIPH_SIZE         (WAM_MSG_PLAIN_SIZE + ENCMAC_SIZE)
-#define WAM_MSG_SIZE              (WAM_MSG_CIPH_SIZE + NONCE_SIZE + WAM_TAG_SIZE)
-
+//#define WAM_MSG_CIPH_SIZE         (WAM_MSG_PLAIN_SIZE + ENCMAC_SIZE)
+#define WAM_MSG_SIZE              (WAM_MSG_PLAIN_SIZE + WAM_TAG_SIZE)
 /* #define WAM_MSG_ENCRYPTED_SIZE    (WAM_MSG_HEADER_SIZE + DATA_SIZE + ENCMAC_SIZE + NONCE_SIZE)
 #define WAM_MSG_SIZE          (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE + AUTH_SIZE + DLEN_SIZE + DATA_SIZE)
 #define WAM_MSG_ENC_SIZE      (WAM_MSG_SIZE + ENCMAC_SIZE)
@@ -108,15 +112,23 @@ enum {
 	WAM_ERR_CRYPTO_OWNERSHIP = 0xFF,
 };
 
+///OLD
+//enum {
+//	WAM_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
+//	WAM_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
+//	WAM_OFFSET_NIDX = 34,    // +32 (INDEX_SIZE)
+//	WAM_OFFSET_AUTH = 66,    // +64 (AUTH_SIZE)
+//	WAM_OFFSET_SIGN = 130,   // +64 (SIGN_SIZE)
+//	WAM_OFFSET_DATA = 194,
+//};
 
 enum {
 	WAM_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
 	WAM_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
-	WAM_OFFSET_NIDX = 34,    // +32 (INDEX_SIZE)
-	WAM_OFFSET_AUTH = 66,    // +64 (AUTH_SIZE)
-	WAM_OFFSET_SIGN = 130,   // +64 (SIGN_SIZE)
-	WAM_OFFSET_DATA = 194,
+	WAM_OFFSET_SIGN = 34,    // +64 (SIGN_SIZE)
+	WAM_OFFSET_DATA = 98,
 };
+
 
 
 /* --------------------------------------------------------------------- */
@@ -182,14 +194,14 @@ typedef struct WAM_channel_t {
 	
 	IOTA_Endpoint* node;
 
-	IOTA_Index start_index;
+	//IOTA_Index start_index;
 	IOTA_Index current_index;
-	IOTA_Index next_index;
+	//IOTA_Index next_index;
 	
 	uint8_t read_idx[INDEX_SIZE];
 
-	WAM_Key *PSK;
-	WAM_AuthCtx *auth;
+	//WAM_Key *PSK;
+	//WAM_AuthCtx *auth;
     
 	uint16_t sent_msg;
 	uint16_t recv_msg;
