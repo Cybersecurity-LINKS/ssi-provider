@@ -1,13 +1,13 @@
 CC      = gcc
 CFLAGS  +=\
--I/home/ale/Scaricati/iota.c-dev/build/include/ \
--I/home/ale/Scaricati/iota.c-dev/build/include/cjson/ \
--I/home/ale/Scaricati/iota.c-dev/build/include/client/ \
--I/home/ale/Scaricati/iota.c-dev/build/include/client/api/v1/ \
--I/home/ale/Scaricati/iota.c-dev/build/include/crypto/ \
--I/home/ale/Scaricati/iota.c-dev/build/include/core/ \
--L/home/ale/Scaricati/iota.c-dev/build/lib/a/\
--Wall -fPIC -g  \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/cjson/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/client/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/client/api/v1/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/crypto/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/core/ \
+-L/home/ale/Scaricati/iota.c-dev/build2/lib/\
+-Wall -fPIC -g \
 
 LDFLAGS= -shared -lssl -lcrypto -lsodium -ldl -lm -lcurl -liota_crypto -liota_core -liota_client -lcurl -lsodium \
 
@@ -22,7 +22,7 @@ $(TARGET): $(OBJECTS)
 	$(CC)  $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 clean:
-	rm -f didprovider.o 
+	rm -f didprovider.o did_method.o wam-wrapper.o CRUD.o WAM.o
 
 install:
 	

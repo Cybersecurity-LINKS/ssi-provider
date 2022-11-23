@@ -20,8 +20,8 @@ void did_document_init(did_document *did_doc) {
 void did_document_free(did_document *did_doc) {
     context *cur_context;
     context *prv_context;
-    method *cur_method;
-    method *prv_method;
+    //method *cur_method;
+    //method *prv_method;
 
     if(did_doc == NULL)
         return;
@@ -37,19 +37,13 @@ void did_document_free(did_document *did_doc) {
     free(did_doc->id.p);
     free(did_doc->created.p);
 
-    free(did_doc->method.id.p);
-    free(did_doc->method.controller.p);
-    free(did_doc->method.pk_pem.p);
+    free(did_doc->authMethod.id.p);
+    free(did_doc->authMethod.controller.p);
+    free(did_doc->authMethod.pk_pem.p);
 
-    cur_method = did_doc->method.next;
-    while(cur_method != NULL){
-        prv_method = cur_method;
-        cur_method = cur_method->next;
-        free(prv_method->id.p);
-        free(prv_method->controller.p);
-        free(prv_method->pk_pem.p);
-        free(prv_method);
-    }
+    free(did_doc->assertionMethod.id.p);
+    free(did_doc->assertionMethod.controller.p);
+    free(did_doc->assertionMethod.pk_pem.p);
 
 }
 
@@ -59,6 +53,8 @@ char *key_types_to_string(KEY_TYPES type) {
             return "Ed25519VerificationKey2018";
         case RsaVerificationKey2018:
             return "RsaVerificationKey2018";
+        case EcdsaSecp256k1VerificationKey2019:
+            return "EcdsaSecp256k1VerificationKey2019";
         default:
             return NULL;
     }
@@ -77,6 +73,12 @@ int find_key_type(char *key_type) {
             case RsaVerificationKey2018:
                 if (strcmp(key_type, key_types_to_string(RsaVerificationKey2018)) == 0) {
                     return RsaVerificationKey2018;
+                }
+                type++;
+                break;
+            case EcdsaSecp256k1VerificationKey2019:
+                if (strcmp(key_type, key_types_to_string(EcdsaSecp256k1VerificationKey2019)) == 0) {
+                    return EcdsaSecp256k1VerificationKey2019;
                 }
                 type++;
                 break;
@@ -134,14 +136,17 @@ char * create_did_document(char * did, ott_buf * Abuff, int Atype, ott_buf * Sbu
     cJSON_AddStringToObject(method, "id", id_key);
 
     switch (Atype) {
-        case Ed25519VerificationKey2018:
-            cJSON_AddStringToObject(method, "type", "Ed25519VerificationKey2018");
+        case EcdsaSecp256k1VerificationKey2019:
+            cJSON_AddStringToObject(method, "type", "EcdsaSecp256k1VerificationKey2019");
             break;
         case RsaVerificationKey2018:
             cJSON_AddStringToObject(method, "type", "RsaVerificationKey2018");
             break;
+        case Ed25519VerificationKey2018:
+            cJSON_AddStringToObject(method, "type", "Ed25519VerificationKey2018");
+            break;
         default:
-            printf("Unrecognised key type");
+            printf("Unrecognised key type\n");
             goto fail;
     }
 
@@ -163,16 +168,20 @@ char * create_did_document(char * did, ott_buf * Abuff, int Atype, ott_buf * Sbu
         snprintf(index_key, KEY_INDEX_LEN, "%d", 1);
         strncat(id_key, index_key, KEY_INDEX_LEN);
         cJSON_AddStringToObject(method, "id", id_key);
+        
 
-        switch (Atype) {
-            case Ed25519VerificationKey2018:
-                cJSON_AddStringToObject(method, "type", "Ed25519VerificationKey2018");
+        switch (Stype) {
+            case EcdsaSecp256k1VerificationKey2019:
+                cJSON_AddStringToObject(method, "type", "EcdsaSecp256k1VerificationKey2019");
                 break;
             case RsaVerificationKey2018:
                 cJSON_AddStringToObject(method, "type", "RsaVerificationKey2018");
                 break;
+            case Ed25519VerificationKey2018:
+                cJSON_AddStringToObject(method, "type", "Ed25519VerificationKey2018");
+            break;
             default:
-                printf("Unrecognised key type");
+                printf("Unrecognised key type\n");
                 goto fail;
         }
         cJSON_AddStringToObject(method, "controller", did);
@@ -233,10 +242,115 @@ fail:
     return -1;
 }
 
+int save_channel(WAM_channel *ch){
 
+    FILE *fp = NULL;
+    // open the file in write binary mode
 
+    fp = fopen("channel.txt", "wb");
+    if(fp == NULL) {
+        return -1;
+    }
+    //id
+    fwrite(&(ch->id), sizeof(uint16_t), 1, fp);
+    //node
+    fwrite(&(ch->node->tls), sizeof(bool), 1, fp);
+    fwrite(&(ch->node->port), sizeof(uint16_t), 1, fp);
+    fwrite(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
+    //start index
+    fwrite(ch->start_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fwrite(ch->start_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(&(ch->start_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    //Ccurrent index
+    fwrite(ch->current_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fwrite(ch->current_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(&(ch->current_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    //next index
+    fwrite(ch->next_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fwrite(ch->next_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(&(ch->next_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    //read index
+    fwrite(ch->read_idx, sizeof(uint8_t), INDEX_SIZE, fp);
+    //PSK
+    fwrite(&(ch->PSK->data_len), sizeof(uint16_t), 1, fp);
+    fwrite(ch->PSK->data, sizeof(uint8_t), ch->PSK->data_len, fp);
+    //auth
+    fwrite(&(ch->auth->type), sizeof(int), 1, fp);//DA RIVEDERE
+    fwrite(&(ch->auth->data_len), sizeof(uint16_t), 1, fp);
+    fwrite(ch->auth->data, sizeof(uint8_t), ch->auth->data_len, fp);
+    //sent_msg
+    fwrite(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
+    //recv_msg
+    fwrite(&(ch->recv_msg), sizeof(uint16_t), 1, fp);
+    //sent_bytes
+    fwrite(&(ch->sent_bytes), sizeof(uint16_t), 1, fp);
+    //recv_bytes
+    fwrite(&(ch->recv_bytes), sizeof(uint16_t), 1, fp);
+    //buff_hex_data
+    fwrite(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
+    //buff_hex_index
+    fwrite(ch->buff_hex_index, sizeof(uint8_t), INDEX_HEX_SIZE, fp);
+    fclose(fp);
+    return 0;
+}
 
-int create(method *methods, char* did_new, IOTA_Index * next) {
+int load_channel(WAM_channel *ch,WAM_AuthCtx *a, WAM_Key *k, IOTA_Endpoint* endpoint){
+    FILE *fp = NULL;
+    uint16_t sz;
+    // open the file in write binary mode
+    fp = fopen("channel.txt", "rb");
+    if(fp == NULL) {
+        return -1;
+    }
+    ch->PSK = k;
+    ch->auth=a;
+    ch->node = endpoint;
+    //id
+    fread(&(ch->id), sizeof(uint16_t), 1, fp);
+    //node
+    fread(&(ch->node->tls), sizeof(bool), 1, fp);
+    fread(&(ch->node->port), sizeof(uint16_t), 1, fp);
+    fread(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
+    //start index
+    fread(ch->start_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fread(ch->start_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fread(&(ch->start_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    //Ccurrent index
+    fread(ch->current_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fread(ch->current_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fread(&(ch->current_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    //next index
+    fread(ch->next_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fread(ch->next_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fread(&(ch->next_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    //read index
+    fread(ch->read_idx, sizeof(uint8_t), INDEX_SIZE, fp);
+    //PSK
+    fread(&sz, sizeof(uint16_t), 1, fp);
+    fread(ch->PSK->data, sizeof(uint8_t), sz, fp);
+    ch->PSK->data_len = sz;
+    //auth
+    fread(&(ch->auth->type), sizeof(uint8_t), 1, fp);//DA RIVEDERE
+    fread(&sz, sizeof(uint16_t), 1, fp);
+    fread(ch->auth->data, sizeof(uint8_t), sz, fp);
+    ch->auth->data_len = sz;
+    //sent_msg
+    fread(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
+    //recv_msg
+    fread(&(ch->recv_msg), sizeof(uint16_t), 1, fp);
+    //sent_bytes
+    fread(&(ch->sent_bytes), sizeof(uint16_t), 1, fp);
+    //recv_bytes
+    fread(&(ch->recv_bytes), sizeof(uint16_t), 1, fp);
+    //buff_hex_data
+    fread(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
+    //buff_hex_index
+    fread(ch->buff_hex_index, sizeof(uint8_t), INDEX_HEX_SIZE, fp);
+    fclose(fp);
+    return 0;
+}
+
+int did_ott_create(method *methods, char* did_new) {
     uint8_t *index_bin;
     char index[INDEX_HEX_SIZE];
     uint8_t ret;
@@ -269,62 +383,11 @@ int create(method *methods, char* did_new, IOTA_Index * next) {
     strncat(did, DID_PREFIX, DID_PREFIX_LEN);
     strncat(did, index, INDEX_HEX_SIZE);
 
-    //printf("%s\n", did);
-
-    //save next index
-    ret = save_next_index(next, &ch_send);
-    if(ret != WAM_OK){
-        goto fail;
-    }
-    
-/*     pub_key_index_bin = ch_send.next_index.keys.pub;
-    ret = bin_2_hex(pub_key_index_bin, ED_PUBLIC_KEY_BYTES, pub_key_index, ED_PUBLIC_KEY_BYTES*2+1);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->keys.pub, pub_key_index_bin, ED_PUBLIC_KEY_BYTES);
-
-    priv_key_index_bin = ch_send.next_index.keys.priv;
-    ret = bin_2_hex(priv_key_index_bin, ED_PRIVATE_KEY_BYTES, priv_key_index, ED_PRIVATE_KEY_BYTES*2+1);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->keys.priv, priv_key_index_bin, ED_PRIVATE_KEY_BYTES);
-
-    berry_bin = ch_send.next_index.berry;
-    ret = bin_2_hex(berry_bin, SEED_SIZE, berry, SEED_SIZE*2+1);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->berry, berry_bin,SEED_SIZE);
-
-    next_index_bin = ch_send.next_index.index;
-    ret = bin_2_hex(next_index_bin, INDEX_SIZE, next_index, INDEX_HEX_SIZE);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->index, next_index_bin, INDEX_SIZE); //here I save the next index for future updates */
-
     char *did_doc = create_did_document(did, &methods[0].pk_pem, methods[0].type, &methods[1].pk_pem, methods[1].type);
     if(did_doc == NULL){
         ret = DID_CREATE_ERROR;
         goto fail;
     }
-    //fprintf(stdout, "%s\n", did_doc);
-    //fprintf(stdout, "DID Document length = %lu\n", strlen(did_doc));
-
-    //next_index_bin = ch_send.current_index.index; //here i grab the next index for future updates
-   // ret = bin_2_hex(next_index_bin, INDEX_SIZE, next_index, INDEX_HEX_SIZE);
-    //if(ret != 0){
-   //     goto fail;
-    //}
-   // printf("CURRENT INDEX DOPO LA CHANNEL INIT %s\n", next_index);
-    //next_index_bin = ch_send.next_index.index; //here i grab the next index for future updates
-   // ret = bin_2_hex(next_index_bin, INDEX_SIZE, next_index, INDEX_HEX_SIZE);
-   // if(ret != 0){
-    //    goto fail;
-    //}
-    //printf("NEXT INDEX DOPO LA CHANNEL INIT %s\n", next_index);
 
     ret = WAM_write(&ch_send, (unsigned char *) did_doc, strlen(did_doc), false);
     if(ret != WAM_OK){
@@ -333,17 +396,14 @@ int create(method *methods, char* did_new, IOTA_Index * next) {
     fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
     //copy the did
     strcpy(did_new, did);
+    
+    
+    save_channel(&ch_send);
 
     return DID_CREATE_OK;
 fail:
     return (ret);
 }
-
-
-
-
-
-
 
 static int sub_string(const char *input, int offset, int len, char *dest) {
     size_t input_len = strlen(input);
@@ -357,7 +417,8 @@ static int sub_string(const char *input, int offset, int len, char *dest) {
     return 0;
 }
 
-int resolve(did_document *didDocument, char *did) {
+
+int did_ott_resolve(did_document *didDocument, char *did) {
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
     uint8_t mykey[] = "supersecretkeyforencryptionalby";
@@ -379,6 +440,7 @@ int resolve(did_document *didDocument, char *did) {
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
             .port = 443,
             .tls = true};
+    fprintf(stdout, "RESOLVE\n");
 
     ret = WAM_init_channel(&ch_read, 1, &testnet0tls, &k, &a);
     if( ret != 0)
@@ -407,7 +469,7 @@ int resolve(did_document *didDocument, char *did) {
     }
 
     if(valid_did_doc_found == 0)
-        return DID_RESOLVE_ERROR;
+        return DID_RESOLVE_NOT_FOUND;
 
     fprintf(stdout, "WAM_read ret:");
     fprintf(stdout, "\n\t val=%d", ret);
@@ -431,7 +493,6 @@ int resolve(did_document *didDocument, char *did) {
     }
 
     //atContext
-
     const cJSON *atContext_array = NULL;
     const cJSON *atContext = NULL;
     context *curr_context = &didDocument->atContext;
@@ -457,7 +518,6 @@ int resolve(did_document *didDocument, char *did) {
     }
 
     //id
-
     const cJSON *id_cJSON = NULL;
     id_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "id");
     if (cJSON_IsString(id_cJSON) && id_cJSON->valuestring != NULL) {
@@ -484,166 +544,140 @@ int resolve(did_document *didDocument, char *did) {
     const cJSON *controller_cJSON = NULL;
     const cJSON *pk_cJSON = NULL;
 
-    method *curr_method = &didDocument->method;
-    method *prev_method = curr_method;
+    //AuthenticationMethod:
+    method_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "authenticationMethod");
+    if (method_cJSON == NULL || !cJSON_IsObject(method_cJSON)) {
+        return DID_RESOLVE_ERROR;
+    }
+    id_method_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "id");
+    if (cJSON_IsString(id_method_cJSON) && id_method_cJSON->valuestring != NULL) {
+        didDocument->authMethod.id.len = strlen(id_method_cJSON->valuestring);
+        didDocument->authMethod.id.p = (unsigned char *) strdup(id_method_cJSON->valuestring);
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
 
-    int method_type = 0, exit = 0;
-
-    while (!exit) {
-        switch (method_type) {
-            case AuthenticationMethod:
-                method_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "authenticationMethod");
-                if (method_cJSON == NULL || !cJSON_IsObject(method_cJSON)) {
-                    method_type++;
-                    continue;
-                }
-                break;
-            case AssertionMethod:
-                method_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "assertionMethod");
-                if (method_cJSON == NULL || !cJSON_IsObject(method_cJSON)) {
-                    method_type++;
-                    continue;
-                }
-                break;
-            default:
-                exit = 1;
-                continue;
-        }
-
-        if (curr_method == NULL) {
-            curr_method = calloc(1, sizeof(method));
-            if (curr_method == NULL)
-                return ALLOC_FAILED;
-            prev_method->next = curr_method;
-            prev_method = prev_method->next;
-        }
-
-        curr_method->method_type = method_type;
-        id_method_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "id");
-        if (cJSON_IsString(id_method_cJSON) && id_method_cJSON->valuestring != NULL) {
-            curr_method->id.len = strlen(id_method_cJSON->valuestring);
-            curr_method->id.p = (unsigned char *) strdup(id_method_cJSON->valuestring);
-        } else {
+    type_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "type");
+    if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL) {
+        didDocument->authMethod.type = find_key_type(type_cJSON->valuestring);
+        if (didDocument->authMethod.type == NO_VALID_KEY_TYPE)
             return DID_RESOLVE_ERROR;
-        }
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
 
-        type_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "type");
-        if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL) {
-            curr_method->type = find_key_type(type_cJSON->valuestring);
-            if (curr_method->type == NO_VALID_KEY_TYPE)
-                return DID_RESOLVE_ERROR;
-        } else {
+    controller_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "controller");
+    if (cJSON_IsString(controller_cJSON) && controller_cJSON->valuestring != NULL) {
+        didDocument->authMethod.controller.len = strlen(controller_cJSON->valuestring);
+        didDocument->authMethod.controller.p = (unsigned char *) strdup(controller_cJSON->valuestring);
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
+
+    pk_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "publicKeyPem");
+    if (cJSON_IsString(pk_cJSON) && pk_cJSON->valuestring != NULL) {
+        didDocument->authMethod.pk_pem.len = strlen(pk_cJSON->valuestring);
+        didDocument->authMethod.pk_pem.p = (unsigned char *) strdup(pk_cJSON->valuestring);
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
+
+    //AssertionMethod
+    method_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "assertionMethod");
+    if (method_cJSON == NULL || !cJSON_IsObject(method_cJSON)) {
+        return DID_RESOLVE_ERROR;
+    }
+
+    id_method_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "id");
+    if (cJSON_IsString(id_method_cJSON) && id_method_cJSON->valuestring != NULL) {
+        didDocument->assertionMethod.id.len = strlen(id_method_cJSON->valuestring);
+        didDocument->assertionMethod.id.p = (unsigned char *) strdup(id_method_cJSON->valuestring);
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
+
+    type_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "type");
+    if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL) {
+        didDocument->assertionMethod.type = find_key_type(type_cJSON->valuestring);
+        if (didDocument->assertionMethod.type == NO_VALID_KEY_TYPE)
             return DID_RESOLVE_ERROR;
-        }
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
 
-        controller_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "controller");
-        if (cJSON_IsString(controller_cJSON) && controller_cJSON->valuestring != NULL) {
-            curr_method->controller.len = strlen(controller_cJSON->valuestring);
-            curr_method->controller.p = (unsigned char *) strdup(controller_cJSON->valuestring);
-        } else {
-            return DID_RESOLVE_ERROR;
-        }
+    controller_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "controller");
+    if (cJSON_IsString(controller_cJSON) && controller_cJSON->valuestring != NULL) {
+        didDocument->assertionMethod.controller.len = strlen(controller_cJSON->valuestring);
+        didDocument->assertionMethod.controller.p = (unsigned char *) strdup(controller_cJSON->valuestring);
+    } else {
+        return DID_RESOLVE_ERROR;
+    }
 
-        pk_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "publicKeyPem");
-        if (cJSON_IsString(pk_cJSON) && pk_cJSON->valuestring != NULL) {
-            curr_method->pk_pem.len = strlen(pk_cJSON->valuestring);
-            curr_method->pk_pem.p = (unsigned char *) strdup(pk_cJSON->valuestring);
-        } else {
-            return DID_RESOLVE_ERROR;
-        }
-
-        curr_method = NULL;
-        method_type++;
+    pk_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "publicKeyPem");
+    if (cJSON_IsString(pk_cJSON) && pk_cJSON->valuestring != NULL) {
+        didDocument->assertionMethod.pk_pem.len = strlen(pk_cJSON->valuestring);
+        didDocument->assertionMethod.pk_pem.p = (unsigned char *) strdup(pk_cJSON->valuestring);
+    } else {
+        return DID_RESOLVE_ERROR;
     }
 
     cJSON_Delete(did_document_json);
     return DID_RESOLVE_OK;
 }
 
-int update(method *methods,char * did,  IOTA_Index *next) {
+int did_ott_update(method *methods,char * did) {
     //FILE *my_did = NULL;
     char newdid[DID_LEN] = "";
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
     char next_index_hex[INDEX_HEX_SIZE];
     uint8_t *index_bin;
+    char index_hex[INDEX_HEX_SIZE];
     uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
     WAM_channel ch_send;
     WAM_AuthCtx a;
     uint8_t write_buff[DATA_SIZE];
-    uint8_t tmp_buff[DATA_SIZE];
+   // uint8_t tmp_buff[DATA_SIZE];
     a.type = AUTHS_NONE;
     WAM_Key k;
     k.data = mykey;
     k.data_len = (uint16_t) strlen((char *) mykey);
     int ret=0;
-    uint16_t expected_size=DATA_SIZE;
+    //uint16_t expected_size=DATA_SIZE;
     uint8_t revoke_index[INDEX_SIZE];
     memset(revoke_index,0,INDEX_SIZE);
 
     fprintf(stdout, "UPDATE\n");
 
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
+     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
             .port = 443,
             .tls = true};
 
-    ret = WAM_init_channel(&ch_send, 1, &testnet0tls, &k, &a);
-    if(ret != WAM_OK){
-        goto fail;
-    }
+    load_channel(&ch_send,&a, &k, &testnet0tls);
     memset(write_buff, 0, DATA_SIZE);
-    //extract hex_index and convert to index
-    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); //len must not include the \0
-    if (ret != 0) {
-        goto fail;
-    }
-    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
-    if(ret != 0){
-        goto fail;
-    }
-    set_channel_index_read(&ch_send, index);
 
-    //set current index to last next index saved
-    //bin_2_hex(next->index, INDEX_HEX_SIZE, next_index_hex, INDEX_SIZE);
-    //fprintf(stdout, "next_index: \n");
-    //fprintf(stdout, "%s", next_index_hex);
-
-
-    if(WAM_read(&ch_send, tmp_buff, &expected_size) != WAM_OK) {
-        ret = DID_UPDATE_ERROR;
-        printf("No valid did document to update found\n");
-        goto fail;
-    }
-
-    //second read to be sure that is not already revoked or that was passed to the function the last did of the chain
-    if(WAM_read(&ch_send, tmp_buff, &expected_size) == WAM_OK) {
-        if(memcmp(ch_send.current_index.index, revoke_index, INDEX_SIZE) == 0){
-            printf("Did already revoked\n");
-            ret = DID_UPDATE_ERROR;
-            goto fail;
-        } else {
-            printf("Did is not the last one of the chain\n");
-            ret = DID_UPDATE_ERROR;
-            goto fail;
-        }
-    }
-
-    //set next index as current
-    ret = copy_iota_index(&(ch_send.current_index), next);
-    if(ret != WAM_OK){
-        goto fail;
-    }
+    //TODO: DA TOGLIERE
+//    //extract hex_index and convert to index
+//    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); //len must not include the \0
+//    if (ret != 0) {
+//        goto fail;
+//    }
+//    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
+//    if(ret != 0){
+//        goto fail;
+//    }
+   
 
     index_bin = ch_send.current_index.index; 
-    ret = bin_2_hex(index_bin, INDEX_SIZE, next_index_hex, INDEX_HEX_SIZE);
+    ret = bin_2_hex(index_bin, INDEX_SIZE, index_hex, INDEX_HEX_SIZE);
     if(ret != 0){
         goto fail;
     }
+    
     strncat(newdid, DID_PREFIX, DID_PREFIX_LEN);
-    strncat(newdid, next_index_hex, INDEX_HEX_SIZE);
+    strncat(newdid, index_hex, INDEX_HEX_SIZE);
     strcpy(did, newdid);
-    fprintf(stdout, "new did %s\n", did);
-
+ 
     //create the updated did document
     char *did_doc = create_did_document(did, &methods[0].pk_pem, methods[0].type, &methods[1].pk_pem, methods[1].type);
     if(did_doc == NULL){
@@ -654,22 +688,12 @@ int update(method *methods,char * did,  IOTA_Index *next) {
     //fprintf(stdout, "DID Document length = %lu\n", strlen(did_doc));
     //save the new did
 
-    ret = copy_iota_index(next,&(ch_send.next_index));
-    if(ret!= WAM_OK){
-        goto fail;
-    }
-    //ret = save_next_index(next, &ch_send);
     ret = WAM_write(&ch_send, (unsigned char *) did_doc, strlen(did_doc), false);
     if( ret != WAM_OK){
         goto fail;
     }
 
-
-   // ret = save_next_index(next, &ch_send);
-   // if(ret!= WAM_OK){
-   //     goto fail;
-    //}
-
+    save_channel(&ch_send);
     fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
 
     return DID_UPDATE_OK;
@@ -680,7 +704,7 @@ int update(method *methods,char * did,  IOTA_Index *next) {
 }
 
 
-int revoke(char * did, IOTA_Index *next){
+int did_ott_revoke(char * did){
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
     uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
@@ -690,7 +714,7 @@ int revoke(char * did, IOTA_Index *next){
     WAM_Key k;
     k.data = mykey;
     k.data_len = (uint16_t) strlen((char *) mykey);
-    uint8_t write_buff[DATA_SIZE];
+    uint8_t write_buff[REVOKE_MSG_SIZE];
     uint8_t tmp_buff[DATA_SIZE];
     uint16_t expected_size=DATA_SIZE;
     uint8_t ret=0;
@@ -704,62 +728,64 @@ int revoke(char * did, IOTA_Index *next){
             .port = 443,
             .tls = true};
 
+    load_channel(&ch_send,&a, &k, &testnet0tls);
 
-    ret = WAM_init_channel(&ch_send, 1, &testnet0tls, &k, &a);
-    if(ret != WAM_OK){
-        goto fail;
-    }
-    memset(write_buff, 0, DATA_SIZE);
+    memset(write_buff, 0, REVOKE_MSG_SIZE);
+
     //extract hex_index and convert to index
-    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); //len must not include the \0
-    if (ret != 0) {
-        goto fail;
-    }
-    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
-    if(ret != 0){
-        goto fail;
-    }
-    set_channel_index_read(&ch_send, index);
-    //fprintf(stdout, "index %s\n", hex_index);
+    //TODO: DA TOGLIERE
+//    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); //len must not include the \0
+//    if (ret != 0) {
+//        goto fail;
+//    }
+//    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
+//    if(ret != 0){
+//        goto fail;
+//    }
+//    set_channel_index_read(&ch_send, index);
+//    //fprintf(stdout, "index %s\n", hex_index);
+//
+//    //first read to see if it is a valid did
+//    if(WAM_read(&ch_send, tmp_buff, &expected_size) != WAM_OK) {
+//        ret = DID_REVOKE_ERROR;
+//        printf("No valid did document to revoke found\n");
+//        goto fail;
+//    }
+//
+//    //second read to be sure that is not already revoked or that was passed to the function the last did of the chain
+//    if(WAM_read(&ch_send, tmp_buff, &expected_size) == WAM_OK) {
+//        if(memcmp(ch_send.current_index.index, revoke_index, INDEX_SIZE) == 0){
+//            printf("Did already revoked\n");
+//            ret = DID_REVOKE_ERROR;
+//            goto fail;
+//        } else {
+//            printf("Did is not the last one of the chain\n");
+//            ret = DID_REVOKE_ERROR;
+//            goto fail;
+//        }
+//    }
 
-    //first read to see if it is a valid did
-    if(WAM_read(&ch_send, tmp_buff, &expected_size) != WAM_OK) {
+    if(memcmp(ch_send.current_index.index, revoke_index, INDEX_SIZE) == 0){
+        printf("Did already revoked\n");
         ret = DID_REVOKE_ERROR;
-        printf("No valid did document to revoke found\n");
         goto fail;
     }
 
-    //second read to be sure that is not already revoked or that was passed to the function the last did of the chain
-    if(WAM_read(&ch_send, tmp_buff, &expected_size) == WAM_OK) {
-        if(memcmp(ch_send.current_index.index, revoke_index, INDEX_SIZE) == 0){
-            printf("Did already revoked\n");
-            ret = DID_REVOKE_ERROR;
-            goto fail;
-        } else {
-            printf("Did is not the last one of the chain\n");
-            ret = DID_REVOKE_ERROR;
-            goto fail;
-        }
-    }
-    //printf(" %s\n", tmp_buff);
-
-    //set next index as current
-    ret = copy_iota_index(&(ch_send.current_index), next);
+    ret = WAM_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
     if(ret != WAM_OK){
         goto fail;
     }
 
-    ret = WAM_write(&ch_send, write_buff, DATA_SIZE, true);
-    if(ret != WAM_OK){
-        goto fail;
-    }
+    save_channel(&ch_send);
 
     return DID_REVOKE_OK;
 
 fail:
     return (ret);
+    
 
 }
+
 /* 
 #define SIZE 2
 #define SIZE2 2
@@ -797,10 +823,10 @@ int main() {
     }
     did_document_init(didDocument);
 
-    IOTA_Index next;
+
 
     //CREATE
-    ret = create(m, my_did_str, &next);
+    ret = create(m, my_did_str);
     if(ret != DID_CREATE_OK){
         printf("Did Document creation failed\n");
         goto exit;
@@ -818,7 +844,7 @@ int main() {
 
 
     //UPDATE KEY1
-    ret = update(m2,my_did_str, &next);
+    ret = update(m2,my_did_str);
     if(ret != DID_UPDATE_OK){
         printf("Update failed");
         goto exit;
@@ -833,14 +859,15 @@ int main() {
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
     }
-    
+
     m2[1].method_type = AssertionMethod;
     m2[1].pk_pem.p = (unsigned char *) KEY4;
     m2[1].pk_pem.len = strlen(KEY4);
     m2[1].type = RsaVerificationKey2018;
 
+
     //UPDATE KEY2
-    ret = update(m2,my_did_str, &next);
+    ret = update(m2,my_did_str);
     if(ret != DID_UPDATE_OK){
         printf("Update failed");
         goto exit;
@@ -857,12 +884,19 @@ int main() {
     }
     printf("%s\n", my_did_str);
 
-    //REVOKE
-    ret = revoke(my_did_str, &next);
+     //REVOKE
+    ret = revoke(my_did_str);
     if(ret != DID_REVOKE_OK){
         printf("Revoke failed");
         goto exit;
     }
+
+//    //REVOKE
+//    ret = revoke(my_did_str);
+//    if(ret != DID_REVOKE_OK){
+//        printf("Revoke failed");
+//        goto exit;
+//    }
 
     //RESOLVE
     ret = resolve(didDocument, my_did_str);
@@ -873,9 +907,9 @@ int main() {
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
     }
-
+ 
 exit:
     did_document_free(didDocument);
     free(didDocument);
     return ( ret );
-} */
+}*/ 

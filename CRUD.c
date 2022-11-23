@@ -2,7 +2,7 @@
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
 #include <openssl/params.h>
-
+#include <openssl/did.h>
 #include "did_method.h"
 
 static OSSL_FUNC_did_create_fn didprovider_create;
@@ -23,50 +23,104 @@ static OSSL_FUNC_did_revoke_fn didprovider_revoke;
 #define KEY4 \
 "KEY 4"
 
-static void *didprovider_create(void *sig, int siglen){
+static void *didprovider_create(void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
     method m[2];
     char *my_did_str = malloc(DID_LEN+1);
     int ret = 0;
-    IOTA_Index next;
-
 
     m[0].method_type = AuthenticationMethod;
-    m[0].pk_pem.p = (unsigned char *) KEY;
-    m[0].pk_pem.len = strlen(KEY);
-    m[0].type = RsaVerificationKey2018;
+    m[0].pk_pem.p = (unsigned char *) sig1;
+    m[0].pk_pem.len = siglen1;
+    m[0].type = type1;
 
     m[1].method_type = AssertionMethod;
-    m[1].pk_pem.p = (unsigned char *) KEY2;
-    m[1].pk_pem.len = strlen(KEY2);
-    m[1].type = Ed25519VerificationKey2018;
+    m[1].pk_pem.p = (unsigned char *) sig2;
+    m[1].pk_pem.len = siglen2;
+    m[1].type = type2;
     
     printf("DID OTT CREATE\n");
     
-    create(m,my_did_str, &next);
-    printf("NEW DID %s\n", my_did_str); 
+    ret = did_ott_create(m,my_did_str);
+    if(ret != WAM_OK)
+        return NULL;
     return my_did_str;
 }
 
-static void *didprovider_resolve(char* index){
+int didprovider_resolve(char* index, DID_DOCUMENT* did_doc){
+    int ret;
+    unsigned char* sig1 = NULL;
+    unsigned char* sig2 = NULL;
     printf("DID OTT RESOLVE\n");
+    
+    if (index == NULL) {
+        return DID_INTERNAL_ERROR;
+    }
     did_document *didDocument = NULL;
     didDocument = calloc(1, sizeof(did_document));
     if (didDocument == NULL) {
-        return ALLOC_FAILED;
+        return DID_INTERNAL_ERROR;
     }
     did_document_init(didDocument);
-    return resolve(didDocument,index);
+
+    ret = did_ott_resolve(didDocument,index);
+    if (ret == DID_RESOLVE_ERROR)
+        return DID_INTERNAL_ERROR;
+    else if (ret == DID_RESOLVE_REVOKED)
+        return DID_REVOKED;
+    else if (ret == DID_RESOLVE_NOT_FOUND)
+        return DID_NOT_FOUD;
+
+    if(didDocument->authMethod.pk_pem.p == NULL || didDocument->assertionMethod.pk_pem.p == NULL)
+        return DID_INTERNAL_ERROR;
+    
+    sig1 = (unsigned char *) strdup(didDocument->authMethod.pk_pem.p);
+    sig2 = (unsigned char *) strdup(didDocument->assertionMethod.pk_pem.p);
+
+    //set the keys in the DID_DOCUMENT structure
+    if(!DID_DOCUMENT_set(did_doc,sig1, didDocument->authMethod.pk_pem.len, didDocument->authMethod.type, sig2, didDocument->assertionMethod.pk_pem.len, didDocument->assertionMethod.type)){
+        printf("DID_DOCUMENT ERROR\n");
+        return DID_INTERNAL_ERROR;
+    } 
+    did_document_free(didDocument);
+    return DID_OK;
 
 }
 
-static int didprovider_update(char* index, void *sig, int siglen){
+static int didprovider_update(char* index, void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
+    method m[2];
+    int ret = 0;
+
+    m[0].method_type = AuthenticationMethod;
+    m[0].pk_pem.p = (unsigned char *) sig1;
+    m[0].pk_pem.len = siglen1;
+    m[0].type = type1;
+
+    m[1].method_type = AssertionMethod;
+    m[1].pk_pem.p = (unsigned char *) sig2;
+    m[1].pk_pem.len = siglen2;
+    m[1].type = type2;
+    
+    
     printf("DID OTT UPDATE\n");
-    return 0;
+    
+    ret = did_ott_update(m,index);
+    if(ret != DID_UPDATE_OK){
+        return DID_INTERNAL_ERROR;
+    }
+    return DID_OK;
 }
 
 static int didprovider_revoke(char* index){
+    int ret = 0;
     printf("DID OTT REVOKE\n");
-    return 0;
+    printf("%s\n", index);
+
+    ret = did_ott_revoke(index);
+
+    if(ret != DID_REVOKE_OK){
+        return DID_INTERNAL_ERROR;
+    }
+    return DID_OK;
 }
 
 const OSSL_DISPATCH didprovider_crud_functions[] = {

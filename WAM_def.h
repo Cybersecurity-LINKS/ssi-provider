@@ -18,7 +18,6 @@
 
 
 
-
 /* --------------------------------------------------------------------- */
 /* -### MACROS ###- */
 /* --------------------------------------------------------------------- */
@@ -43,7 +42,7 @@
 #define IOTA_MAX_MSG_SIZE    (31777)
 
 // Fields
-#define DATA_SIZE            (1500)   // =customizable (MUST BE < IOTA_MAX_MSG_SIZE)
+#define DATA_SIZE            (3000)   // =customizable (MUST BE < IOTA_MAX_MSG_SIZE)
 #define DLEN_SIZE              (2)   // =sizeof(uint16_t)
 #define INDEX_SIZE            (32)   // =ED25519_ADDRESS_BYTES
 #define PUBK_SIZE             (32)   // =ED_PUBLIC_KEY_BYTES
