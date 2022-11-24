@@ -104,7 +104,7 @@ enum {
 	WAM_ERR_RECV = 0xF7,
 	WAM_ERR_RECV_API = 0xF8,
 	WAM_ERR_RECV_MANYMSG = 0xF9,
-	WAM_ERR_CRYPTO_ENC = 0xFA,
+	WAM_ERR_CRYPTO_E25519 = 0xFA,
 	WAM_ERR_CRYPTO_DEC = 0xFB,
 	WAM_ERR_CRYPTO_MAC = 0xFC,
 	WAM_ERR_CRYPTO_VERSIGN = 0xFD,
@@ -194,15 +194,10 @@ typedef struct WAM_channel_t {
 	
 	IOTA_Endpoint* node;
 
-	//IOTA_Index start_index;
-	IOTA_Index current_index;
-	//IOTA_Index next_index;
-	
+	IOTA_Index first_index;
+	IOTA_Index second_index; //create index	
 	uint8_t read_idx[INDEX_SIZE];
 
-	//WAM_Key *PSK;
-	//WAM_AuthCtx *auth;
-    
 	uint16_t sent_msg;
 	uint16_t recv_msg;
 	uint16_t sent_bytes;

@@ -23,7 +23,7 @@ uint8_t reset_index(IOTA_Index* index);
 uint8_t update_channel_indexes(WAM_channel* channel);
 uint8_t copy_iota_index(IOTA_Index* dstIndex, IOTA_Index* srcIndex);
 bool is_null_index(uint8_t* idx);
-uint8_t generate_iota_index(IOTA_Index* idx);
+uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2);
 uint8_t send_wam_message(WAM_channel* ch, uint8_t* raw_data, uint16_t raw_data_size);
 uint8_t convert_wam_endpoint(IOTA_Endpoint* wam_ep, iota_client_conf_t *ep);
 
@@ -49,7 +49,7 @@ uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpo
 	memset(channel->buff_hex_index, 0, INDEX_HEX_SIZE);
 	
 	// Init Index
-	generate_iota_index(&(channel->currwnt_index));
+	generate_iota_index(&(channel->current_index));
 	//generate_iota_index(&(channel->next_index));
 	//copy_iota_index(&(channel->current_index), &(channel->start_index));
 
@@ -567,12 +567,19 @@ bool is_null_index(uint8_t* idx) {
 }
 
 
-uint8_t generate_iota_index(IOTA_Index* idx) {
+uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2) {
+	int ret;
 	if(idx == NULL) return WAM_ERR_NULL;
-
-	iota_crypto_randombytes(idx->berry, SEED_SIZE);   // generate random
-	iota_crypto_keypair(idx->berry, &(idx->keys));   // generate keypair from random
-	address_from_ed25519_pub(idx->keys.pub, idx->index);   // index = HashB2B(PubK)
+	// generate first random seed
+	iota_crypto_randombytes(idx->berry, SEED_SIZE);
+	// generate the first keypair from random 
+	iota_crypto_keypair(idx->berry, &(idx->keys));
+	// first index = HashB2B(PubK1) = second random seed
+	if ((ret = address_from_ed25519_pub(idx->keys.pub, idx->index)) != 0) return WAM_ERR_CRYPTO_E25519;
+	// generate the second keypair from second random 
+	iota_crypto_keypair(idx->berry, &(idx->keys));
+	// first index = HashB2B(PubK1)
+	if ((ret = address_from_ed25519_pub(idx->keys.pub, idx->index)) != 0) return WAM_ERR_CRYPTO_E25519;
 
 	return(WAM_OK);
 }

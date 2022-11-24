@@ -355,8 +355,6 @@ int did_ott_create(method *methods, char* did_new) {
     char index[INDEX_HEX_SIZE];
     uint8_t ret;
     char did[DID_LEN] = "";
-
-    uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
     WAM_channel ch_send;
     //WAM_AuthCtx a;
     //a.type = AUTHS_NONE;
@@ -370,7 +368,7 @@ int did_ott_create(method *methods, char* did_new) {
             .tls = true};
 
     
-    ret = WAM_init_channel(&ch_send, 1, &testnet0tls, &k, &a);
+    ret = WAM_init_channel(&ch_send, 1, &testnet0tls);
     if(ret != WAM_OK){
         goto fail;
     }
@@ -786,7 +784,7 @@ fail:
 
 }
 
-/* 
+
 #define SIZE 2
 #define SIZE2 2
 
@@ -912,4 +910,5 @@ exit:
     did_document_free(didDocument);
     free(didDocument);
     return ( ret );
-}*/ 
+}
+//*/
