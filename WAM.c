@@ -142,7 +142,7 @@ uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg
 
 		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
 	}
-	printf("NOTFOUND MSX\n");
+
 	return(WAM_NOT_FOUND);
 	//p = (char**) utarray_next(response_info->u.msg_ids->msg_ids, p);
 	//while (p != NULL) {
@@ -197,7 +197,7 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uin
 //fprintf(stdout, "RECV - NIDX:\n"); print_raw_hex(next_index, INDEX_SIZE);
 //fprintf(stdout, "RECV - AUTH:\n"); print_raw_hex(AuthSign, AUTH_SIZE);
 //fprintf(stdout, "RECV - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
-fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
+//fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 
 	// check signature (consider almost whole msg)
 	memcpy(tmp_data, plaintext, WAM_OFFSET_SIGN); // copy msg until authsign
@@ -206,6 +206,8 @@ fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 	printf("QUIIII\n");
 	// check ownership (hash(pubk) == index)
 	//if(ownership_check(pubk, channel->current_index.index) != WAM_OK) return(false);
+	print_raw_hex(pubk, PUBK_SIZE);
+	print_raw_hex(channel->read_idx, INDEX_SIZE);
 	if(ownership_check(pubk, channel->read_idx) != WAM_OK) return(false);
 	printf("QUIIII22222\n");
 
@@ -225,8 +227,9 @@ fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index) {
 	uint8_t hash[BLAKE2B_HASH_SIZE];
 	memset(hash, 0, BLAKE2B_HASH_SIZE);
-
+	//TODO REVOKE CONTROLLARE PRIV1 HASH
 	iota_blake2b_sum(pubk, PUBK_SIZE, hash, BLAKE2B_HASH_SIZE);   // h= b2b(recv_pubk)
+	print_raw_hex(hash, BLAKE2B_HASH_SIZE);
 	if(memcmp(hash, current_index, INDEX_SIZE) != 0){
 		return(WAM_ERR_CRYPTO_OWNERSHIP);
 	}

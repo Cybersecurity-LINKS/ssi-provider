@@ -750,7 +750,22 @@ int main() {
         return ALLOC_FAILED;
     }
     did_document_init(didDocument);
+     ret = did_ott_create(m, my_did_str);
+    if(ret != DID_CREATE_OK){
+        printf("Did Document creation failed\n");
+        
+    }
 
+    //RESOLVE
+    ret = did_ott_resolve(didDocument, my_did_str);
+    if(ret == DID_RESOLVE_REVOKED){
+        printf("Did Document Revoked\n");
+        ret = 0;
+       
+    } else if( ret == DID_RESOLVE_OK){
+        printf("Did Document OK\n");
+    }
+/* 
     uint8_t tmp_buff[DATA_SIZE];
     uint16_t expected_size = DATA_SIZE;
     WAM_channel ch_send;
@@ -758,12 +773,15 @@ int main() {
             .port = 443,
             .tls = true};
     ret = WAM_init_channel(&ch_send, 1, &testnet0tls);
-    ret = WAM_write(&ch_send, "Adfdfsfs", strlen("Adfdfsfs"), true);
+    ret = WAM_write(&ch_send, "gdsfsefidehbfehfwdvehwfvhuwvqhwvdhgqwvehv    woevhwqveqwvvwghevghwvqhegvwghevqwhge", strlen("gdsfsefidehbfehfwdvehwfvhuwvqhwvdhgqwvehv    woevhwqveqwvvwghevghwvqhegvwghevqwhge<bjfbpaòbashfasddddddfa"), false);
     printf("ret %d\n");
     set_channel_index_read(&ch_send, &ch_send.second_index.index);
 
     ret = WAM_read(&ch_send,tmp_buff, &expected_size);
-    printf("ret %s\n", tmp_buff);
+    //tmp_buff[expected_size] ='\n';
+    tmp_buff[ch_send.recv_bytes] = '\0';
+    printf("\nret %d\n", expected_size);
+    printf("\nret %s\n", tmp_buff); */
 /*     //CREATE
     ret = create(m, my_did_str);
     if(ret != DID_CREATE_OK){
@@ -847,9 +865,9 @@ int main() {
         printf("Did Document OK\n");
     }
   */
-exit:
-    did_document_free(didDocument);
-    free(didDocument);
-    return ( ret );
+//exit:
+   // did_document_free(didDocument);
+   // free(didDocument);
+   // return ( ret );
 }
 //*/
