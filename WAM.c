@@ -16,7 +16,6 @@ const uint8_t wam_tag[WAM_TAG_SIZE] = {
 
 
 uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uint8_t* msg, uint16_t* msg_len, bool finalize);
-uint8_t sign_auth_do(uint8_t* data, size_t data_len, WAM_AuthCtx* a, uint8_t* signature, size_t sig_len);
 uint8_t sign_hash_do(uint8_t* data, size_t data_len, uint8_t* key, uint16_t key_len, uint8_t* signature, size_t sig_len);
 uint16_t get_messages_number(uint16_t len);
 uint8_t reset_index(IOTA_Index* index);
@@ -175,23 +174,15 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uin
 	//cipher_len = ((size_t) *msg_len) - WAM_TAG_SIZE - NONCE_SIZE;
 
 	if(memcmp(msg, wam_tag, WAM_TAG_SIZE) != 0) return false;
-	memcpy(nonce, msg + WAM_TAG_SIZE, NONCE_SIZE);
-	memcpy(ciphertext, msg + WAM_TAG_SIZE + NONCE_SIZE, cipher_len);
+	//memcpy(nonce, msg + WAM_TAG_SIZE, NONCE_SIZE);
+	//memcpy(ciphertext, msg + WAM_TAG_SIZE + NONCE_SIZE, cipher_len);
 
 	plain_len = cipher_len - ENCMAC_SIZE;
 	// decryption
-#if 1
-	////err |= crypto_secretbox_easy(ciphertext, plaintext, plain_len, nonce, channel->PSK);
-	err |= crypto_secretbox_open_easy(plaintext, ciphertext, cipher_len, nonce, channel->PSK->data);
-	if(err) {fprintf(stdout, "\n\n ERROR DECRYPT.\nKey is:\n"); print_raw_hex(channel->PSK->data, PSK_SIZE);}
-	if(err) return(false);
-#else
-	uint8_t tmp_nonce[NONCE_SIZE];   memset(tmp_nonce, 1, NONCE_SIZE);
-	uint8_t tmp_encmac[ENCMAC_SIZE];   memset(tmp_encmac, 0x40, ENCMAC_SIZE);
-	if(memcmp(nonce, tmp_nonce, NONCE_SIZE) != 0) return false;
-	if(memcmp(ciphertext + plain_len, tmp_encmac, ENCMAC_SIZE) != 0) return false;
-	memcpy(plaintext, ciphertext, plain_len);
-#endif
+	//err |= crypto_secretbox_open_easy(plaintext, ciphertext, cipher_len, nonce, channel->PSK->data);
+	//if(err) {fprintf(stdout, "\n\n ERROR DECRYPT.\nKey is:\n"); print_raw_hex(channel->PSK->data, PSK_SIZE);}
+	//if(err) return(false);
+
 
 	// unpack data
 	_GET16(plaintext, WAM_OFFSET_DLEN, data_len);
@@ -205,7 +196,7 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uin
 //fprintf(stdout, "RECV - NIDX:\n"); print_raw_hex(next_index, INDEX_SIZE);
 //fprintf(stdout, "RECV - AUTH:\n"); print_raw_hex(AuthSign, AUTH_SIZE);
 //fprintf(stdout, "RECV - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
-//fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
+fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 
 	// check signature (consider almost whole msg)
 	memcpy(tmp_data, plaintext, WAM_OFFSET_SIGN); // copy msg until authsign
@@ -223,7 +214,7 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uin
 		memset(msg, 0, WAM_MSG_SIZE);   // clean msg
 		memcpy(msg, plaintext + WAM_OFFSET_DATA, data_len);   // copy only application data
 		*msg_len = data_len;   // set size of application data
-		memcpy(next_idx, next_index, INDEX_SIZE);   // next_index
+		//memcpy(next_idx, next_index, INDEX_SIZE);   // next_index
 		return(true);
 	}
 
@@ -406,18 +397,6 @@ uint8_t sign_hash_check(uint8_t* data, uint16_t data_len, uint8_t* recv_sign, ui
 	return(WAM_OK);
 }
 
-
-// sig_len seems useless
-uint8_t sign_auth_do(uint8_t* data, size_t data_len, WAM_AuthCtx* a, uint8_t* signature, size_t sig_len) {
-	if(a->type==AUTHS_KEY) {
-		sign_hash_do(data, data_len, a->data, a->data_len, signature, sig_len);
-	}
-	if(a->type == AUTHS_NONE) {
-		memset(signature, 0xFF, sig_len);   // AuthSign is performed at upper level and embedded in the data;
-	}
-	return(WAM_OK);
-}
-
 // sig_len seems useless; key_len seems useless
 uint8_t sign_hash_do(uint8_t* data, size_t data_len, uint8_t* key, uint16_t key_len, uint8_t* signature, size_t sig_len) {
 	int ret;
@@ -458,8 +437,8 @@ uint8_t set_channel_index_read(WAM_channel* channel, uint8_t* start_index_bin) {
 
 uint8_t set_channel_current_index(WAM_channel* channel, uint8_t* index_bin) {
 
-	memcpy(channel->current_index.index, index_bin, INDEX_SIZE);
-	memcpy(channel->read_idx, index_bin, INDEX_SIZE);
+/* 	memcpy(channel->current_index.index, index_bin, INDEX_SIZE);
+	memcpy(channel->read_idx, index_bin, INDEX_SIZE); */
 
 	return(WAM_OK);
 }
@@ -509,15 +488,15 @@ uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2) {
 	iota_crypto_keypair(idx1->berry, &(idx1->keys));
 	// first index = HashB2B(PubK1) = second random seed
 	if ((ret = address_from_ed25519_pub(idx1->keys.pub, idx1->index)) != 0) return WAM_ERR_CRYPTO_E25519;
-	printf("idx1 index %s\n", idx1->index);
+	printf("idx1 index \n"); print_raw_hex(idx1->index, INDEX_SIZE);
 	//copy berry DA CONTROLLARE
 	memcpy(idx2->berry, idx1->index, SEED_SIZE);
-	printf("idx2 berry %s\n", idx2->berry);
+	printf("idx2 berry \n", idx2->berry);print_raw_hex(idx2->berry, SEED_SIZE);
 	// generate the second keypair from second random 
 	iota_crypto_keypair(idx2->berry, &(idx2->keys));
 	// second index = HashB2B(PubK2)
 	if ((ret = address_from_ed25519_pub(idx2->keys.pub, idx2->index)) != 0) return WAM_ERR_CRYPTO_E25519;
-
+	printf("idx2 index \n");print_raw_hex(idx2->index, INDEX_SIZE);
 	return(WAM_OK);
 }
 
@@ -589,7 +568,7 @@ void dummy_print(uint8_t* str_hello) {
 }
 
 void test_write_read_enc_largemsg() {
-	uint8_t mykey[]="supersecretkeyforencryptionalby";
+/* 	uint8_t mykey[]="supersecretkeyforencryptionalby";
 	WAM_channel ch_send, ch_read;
 	WAM_AuthCtx a; a.type = AUTHS_NONE;
 	WAM_Key k; k.data = mykey; k.data_len = (uint16_t) strlen((char*)mykey);
@@ -616,5 +595,5 @@ void test_write_read_enc_largemsg() {
 	fprintf(stdout, "\n\t expctsize=%d \t", expected_size);
 	fprintf(stdout, "\n\t msg_read=%d \t", ch_read.recv_msg);
 	fprintf(stdout, "\n\t bytes_read=%d \t", ch_read.recv_bytes);
-	fprintf(stdout, "\n\t cmpbuff=%s \n", (memcmp(mylargemsg, read_buff, DATA_SIZE+14)==0) ? "success" : "failure");
+	fprintf(stdout, "\n\t cmpbuff=%s \n", (memcmp(mylargemsg, read_buff, DATA_SIZE+14)==0) ? "success" : "failure"); */
 }

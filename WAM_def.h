@@ -110,6 +110,8 @@ enum {
 	WAM_ERR_CRYPTO_VERSIGN = 0xFD,
 	WAM_ERR_CRYPTO_VERAUTHSIGN = 0xFE,
 	WAM_ERR_CRYPTO_OWNERSHIP = 0xFF,
+	WAM_ERR_CRYPTO_BLACKE2B = 0x100,
+	WAM_ERR_CRYPTO_SIGN = 0x101
 };
 
 ///OLD
@@ -173,15 +175,6 @@ typedef struct IOTA_index_t {
 	uint8_t berry[SEED_SIZE];   // random
 	iota_keypair_t keys;        // keypair generated from berry
 } IOTA_Index;
-
-
-typedef enum {AUTHS_KEY, AUTHS_NONE} AuthType;
-
-typedef struct WAM_AuthCtx_t {
-	uint8_t* data;         // Key data
-	uint16_t data_len;     // Key lenght
-	AuthType type;
-} WAM_AuthCtx;
 
 typedef struct WAM_Key_t {
 	uint8_t *data;

@@ -195,7 +195,7 @@ fail:
 
 int save_channel(WAM_channel *ch){
 
-    FILE *fp = NULL;
+/*     FILE *fp = NULL;
     // open the file in write binary mode
 
     fp = fopen("channel.txt", "wb");
@@ -241,12 +241,12 @@ int save_channel(WAM_channel *ch){
     fwrite(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
     //buff_hex_index
     fwrite(ch->buff_hex_index, sizeof(uint8_t), INDEX_HEX_SIZE, fp);
-    fclose(fp);
+    fclose(fp); */
     return 0;
 }
 
-int load_channel(WAM_channel *ch,WAM_AuthCtx *a, WAM_Key *k, IOTA_Endpoint* endpoint){
-    FILE *fp = NULL;
+//int load_channel(WAM_channel *ch,WAM_AuthCtx *a, WAM_Key *k, IOTA_Endpoint* endpoint){
+/*     FILE *fp = NULL;
     uint16_t sz;
     // open the file in write binary mode
     fp = fopen("channel.txt", "rb");
@@ -297,9 +297,9 @@ int load_channel(WAM_channel *ch,WAM_AuthCtx *a, WAM_Key *k, IOTA_Endpoint* endp
     fread(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
     //buff_hex_index
     fread(ch->buff_hex_index, sizeof(uint8_t), INDEX_HEX_SIZE, fp);
-    fclose(fp);
-    return 0;
-}
+    fclose(fp); */
+  //  return 0;
+//}
 
 int did_ott_create(method *methods, char* did_new) {
     uint8_t *index_bin;
@@ -307,11 +307,6 @@ int did_ott_create(method *methods, char* did_new) {
     uint8_t ret;
     char did[DID_LEN] = "";
     WAM_channel ch_send;
-    //WAM_AuthCtx a;
-    //a.type = AUTHS_NONE;
-    //WAM_Key k;
-   // k.data = mykey;
-    //k.data_len = (uint16_t) strlen((char *) mykey);
 
     fprintf(stdout, "CREATE\n");
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
@@ -324,7 +319,7 @@ int did_ott_create(method *methods, char* did_new) {
         goto fail;
     }
 
-    index_bin = ch_send.start_index.index; //here i grab the start index that is my did
+    index_bin = ch_send.second_index.index; //here i grab the start index that is my did
     ret = bin_2_hex(index_bin, INDEX_SIZE, index, INDEX_HEX_SIZE);
     if(ret != 0){
         goto fail;
@@ -370,13 +365,7 @@ static int sub_string(const char *input, int offset, int len, char *dest) {
 int did_ott_resolve(did_document *didDocument, char *did) {
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
-    uint8_t mykey[] = "supersecretkeyforencryptionalby";
     WAM_channel ch_read;
-    WAM_AuthCtx a;
-    a.type = AUTHS_NONE;
-    WAM_Key k;
-    k.data = mykey;
-    k.data_len = (uint16_t) strlen((char *) mykey);
     uint8_t tmp_buff[DATA_SIZE];
     uint8_t read_buff[DATA_SIZE];
     uint16_t expected_size = DATA_SIZE;
@@ -391,7 +380,7 @@ int did_ott_resolve(did_document *didDocument, char *did) {
             .tls = true};
     fprintf(stdout, "RESOLVE\n");
 
-    ret = WAM_init_channel(&ch_read, 1, &testnet0tls, &k, &a);
+    ret = WAM_init_channel(&ch_read, 1, &testnet0tls);
     if( ret != 0)
         return DID_RESOLVE_ERROR;
 
@@ -410,9 +399,9 @@ int did_ott_resolve(did_document *didDocument, char *did) {
         valid_did_doc_found = 1;
        // printf("%s\n",ch_read.next_index.index);
       //  printf("%s\n",revoke);
-        if(memcmp(ch_read.current_index.index, revoke, INDEX_SIZE) == 0){
-            return DID_RESOLVE_REVOKED;
-        }
+   //     if(memcmp(ch_read.current_index.index, revoke, INDEX_SIZE) == 0){
+      //      return DID_RESOLVE_REVOKED;
+     //   }
         memcpy(read_buff, tmp_buff, DATA_SIZE);
         memset(tmp_buff, 0, DATA_SIZE);
     }
@@ -582,15 +571,9 @@ int did_ott_update(method *methods,char * did) {
     char next_index_hex[INDEX_HEX_SIZE];
     uint8_t *index_bin;
     char index_hex[INDEX_HEX_SIZE];
-    uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
     WAM_channel ch_send;
-    WAM_AuthCtx a;
     uint8_t write_buff[DATA_SIZE];
-   // uint8_t tmp_buff[DATA_SIZE];
-    a.type = AUTHS_NONE;
-    WAM_Key k;
-    k.data = mykey;
-    k.data_len = (uint16_t) strlen((char *) mykey);
+
     int ret=0;
     //uint16_t expected_size=DATA_SIZE;
     uint8_t revoke_index[INDEX_SIZE];
@@ -602,7 +585,7 @@ int did_ott_update(method *methods,char * did) {
             .port = 443,
             .tls = true};
 
-    load_channel(&ch_send,&a, &k, &testnet0tls);
+    //load_channel(&ch_send,&a, &k, &testnet0tls);
     memset(write_buff, 0, DATA_SIZE);
 
     //TODO: DA TOGLIERE
@@ -617,7 +600,7 @@ int did_ott_update(method *methods,char * did) {
 //    }
    
 
-    index_bin = ch_send.current_index.index; 
+    index_bin = ch_send.second_index.index; 
     ret = bin_2_hex(index_bin, INDEX_SIZE, index_hex, INDEX_HEX_SIZE);
     if(ret != 0){
         goto fail;
@@ -658,11 +641,7 @@ int did_ott_revoke(char * did){
     uint8_t index[INDEX_SIZE];
     uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
     WAM_channel ch_send;
-    WAM_AuthCtx a;
-    a.type = AUTHS_NONE;
-    WAM_Key k;
-    k.data = mykey;
-    k.data_len = (uint16_t) strlen((char *) mykey);
+
     uint8_t write_buff[REVOKE_MSG_SIZE];
     uint8_t tmp_buff[DATA_SIZE];
     uint16_t expected_size=DATA_SIZE;
@@ -677,7 +656,7 @@ int did_ott_revoke(char * did){
             .port = 443,
             .tls = true};
 
-    load_channel(&ch_send,&a, &k, &testnet0tls);
+    //load_channel(&ch_send,&a, &k, &testnet0tls);
 
     memset(write_buff, 0, REVOKE_MSG_SIZE);
 
@@ -714,7 +693,7 @@ int did_ott_revoke(char * did){
 //        }
 //    }
 
-    if(memcmp(ch_send.current_index.index, revoke_index, INDEX_SIZE) == 0){
+    if(memcmp(ch_send.second_index.index, revoke_index, INDEX_SIZE) == 0){
         printf("Did already revoked\n");
         ret = DID_REVOKE_ERROR;
         goto fail;
@@ -772,9 +751,22 @@ int main() {
     }
     did_document_init(didDocument);
 
+    uint8_t tmp_buff[DATA_SIZE];
+    uint16_t expected_size = DATA_SIZE;
+    WAM_channel ch_send;
+    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
+            .port = 443,
+            .tls = true};
+    ret = WAM_init_channel(&ch_send, 1, &testnet0tls);
+    ret = WAM_write(&ch_send, "Adfdfsfs", 58, true);
+    ret = WAM_write(&ch_send, "Adfdfsfs", 58, true);
+    ret = WAM_write(&ch_send, "Adfdfsfs", 58, true);
+    printf("ret %d\n");
+    set_channel_index_read(&ch_send, &ch_send.second_index.index);
 
-
-    //CREATE
+    ret = WAM_read(&ch_send,tmp_buff, &expected_size);
+    printf("ret %s\n", tmp_buff);
+/*     //CREATE
     ret = create(m, my_did_str);
     if(ret != DID_CREATE_OK){
         printf("Did Document creation failed\n");
@@ -856,7 +848,7 @@ int main() {
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
     }
- 
+  */
 exit:
     did_document_free(didDocument);
     free(didDocument);
