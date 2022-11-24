@@ -14,7 +14,7 @@ LDFLAGS+=\
 -I/home/ale/iota.c/build/include/core/ \
 
 LDFLAGS += \
--L/home/meiwaa/Desktop/iota.c/build/lib/ \
+-L/home/ale/iota.c/build/lib/ \
 -liota_crypto -lcrypto -liota_core -liota_client -lcjson -lcurl -lsodium
 
 APP = did_method
