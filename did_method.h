@@ -88,8 +88,6 @@ int did_ott_update(method *methods,char * did);
 
 int did_ott_revoke(char *did);
 
-
-//int update2(method *methods, int size,  data *dt);
 #endif //DID_METHOD_H
 
 

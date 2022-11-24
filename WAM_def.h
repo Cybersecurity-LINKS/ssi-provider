@@ -47,7 +47,7 @@
 #define INDEX_SIZE            (32)   // =ED25519_ADDRESS_BYTES
 #define PUBK_SIZE             (32)   // =ED_PUBLIC_KEY_BYTES
 #define SIGN_SIZE             (64)   // =ED_SIGNATURE_BYTES
-#define AUTH_SIZE             (64)   // =2*STSAFEA_XYRS_ECDSA_SHA256_LENGTH
+//#define AUTH_SIZE             (64)   // =2*STSAFEA_XYRS_ECDSA_SHA256_LENGTH
 
 // Utils
 #define SEED_SIZE             (32)   // =IOTA_SEED_BYTES, =ED25519_ADDRESS_BYTES
@@ -134,7 +134,7 @@ enum {
 /* --------------------------------------------------------------------- */
 /* -### CONST ###- */
 /* --------------------------------------------------------------------- */
-#define WAM_PSK "AC88DFA4DEAAE33E0135DFF4A6BB678FA7FFDC10869ADC6E6D38DDCBC90CAC88"
+//#define WAM_PSK "AC88DFA4DEAAE33E0135DFF4A6BB678FA7FFDC10869ADC6E6D38DDCBC90CAC88"
 #define WAM_MAX_RETRY     (5)
 
 #define DEVNET00_HOSTNAME     "api.lb-0.h.chrysalis-devnet.iota.cafe\0"

@@ -20,8 +20,6 @@ void did_document_init(did_document *did_doc) {
 void did_document_free(did_document *did_doc) {
     context *cur_context;
     context *prv_context;
-    //method *cur_method;
-    //method *prv_method;
 
     if(did_doc == NULL)
         return;
@@ -46,7 +44,7 @@ void did_document_free(did_document *did_doc) {
     free(did_doc->assertionMethod.pk_pem.p);
 
 }
-
+//to be expanded
 char *key_types_to_string(KEY_TYPES type) {
     switch (type) {
         case Ed25519VerificationKey2018:
@@ -130,7 +128,6 @@ char * create_did_document(char * did, ott_buf * Abuff, int Atype, ott_buf * Sbu
     memset(id_key, 0, MAX_KEY_ID_LEN);
     strncat(id_key, did, DID_LEN);
     strcat(id_key, KEY_ID_PREFIX);
-    //da rivedere i = 0
     snprintf(index_key, KEY_INDEX_LEN, "%d", 0);
     strncat(id_key, index_key, KEY_INDEX_LEN);
     cJSON_AddStringToObject(method, "id", id_key);
@@ -155,7 +152,6 @@ char * create_did_document(char * did, ott_buf * Abuff, int Atype, ott_buf * Sbu
     cJSON_AddItemToObject(did_document, "authenticationMethod", method);
 
     if(Sbuff != NULL){
-        //opzionale?
         //assertionMethod
         method = cJSON_CreateObject();
         if(method == NULL){
@@ -164,7 +160,6 @@ char * create_did_document(char * did, ott_buf * Abuff, int Atype, ott_buf * Sbu
         memset(id_key, 0, MAX_KEY_ID_LEN);
         strncat(id_key, did, DID_LEN);
         strcat(id_key, KEY_ID_PREFIX);
-        //da rivedere i = 1
         snprintf(index_key, KEY_INDEX_LEN, "%d", 1);
         strncat(id_key, index_key, KEY_INDEX_LEN);
         cJSON_AddStringToObject(method, "id", id_key);
@@ -196,50 +191,6 @@ char * create_did_document(char * did, ott_buf * Abuff, int Atype, ott_buf * Sbu
 fail:
     cJSON_Delete(did_document);
     return NULL;
-}
-
-int save_next_index(IOTA_Index * next, WAM_channel* ch){
-    uint8_t *next_index_bin;
-    char next_index[INDEX_HEX_SIZE];
-    uint8_t *pub_key_index_bin;
-    char pub_key_index[ED_PUBLIC_KEY_BYTES*2+1];
-    uint8_t *priv_key_index_bin;
-    char priv_key_index[ED_PRIVATE_KEY_BYTES*2+1];
-    uint8_t *berry_bin;
-    char berry[SEED_SIZE*2+1];
-    int ret;
-
-    pub_key_index_bin = ch->next_index.keys.pub;
-    ret = bin_2_hex(pub_key_index_bin, ED_PUBLIC_KEY_BYTES, pub_key_index, ED_PUBLIC_KEY_BYTES*2+1);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->keys.pub, pub_key_index_bin, ED_PUBLIC_KEY_BYTES);
-
-    priv_key_index_bin = ch->next_index.keys.priv;
-    ret = bin_2_hex(priv_key_index_bin, ED_PRIVATE_KEY_BYTES, priv_key_index, ED_PRIVATE_KEY_BYTES*2+1);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->keys.priv, priv_key_index_bin, ED_PRIVATE_KEY_BYTES);
-
-    berry_bin = ch->next_index.berry;
-    ret = bin_2_hex(berry_bin, SEED_SIZE, berry, SEED_SIZE*2+1);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->berry, berry_bin,SEED_SIZE);
-
-    next_index_bin = ch->next_index.index;
-    ret = bin_2_hex(next_index_bin, INDEX_SIZE, next_index, INDEX_HEX_SIZE);
-    if(ret != 0){
-        goto fail;
-    }
-    memcpy(next->index, next_index_bin, INDEX_SIZE); //here I save the next index for future updates
-
-    return WAM_OK;
-fail:
-    return -1;
 }
 
 int save_channel(WAM_channel *ch){
