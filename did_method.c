@@ -755,7 +755,6 @@ int main() {
         printf("Did Document creation failed\n");
         
     }
-
     //RESOLVE
     ret = did_ott_resolve(didDocument, my_did_str);
     if(ret == DID_RESOLVE_REVOKED){
