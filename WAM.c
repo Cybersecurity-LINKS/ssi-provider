@@ -142,6 +142,7 @@ uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg
 
 		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
 	}
+	printf("NOTFOUND MSX\n");
 	return(WAM_NOT_FOUND);
 	//p = (char**) utarray_next(response_info->u.msg_ids->msg_ids, p);
 	//while (p != NULL) {
@@ -171,19 +172,19 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uin
 	//memset(next_index, 0, INDEX_SIZE);
 	memset(pubk, 0, PUBK_SIZE);
 
-	//cipher_len = ((size_t) *msg_len) - WAM_TAG_SIZE - NONCE_SIZE;
+	plain_len = ((size_t) *msg_len) - WAM_TAG_SIZE;
+	//printf("MSg\n", msg); print_raw_hex(msg, msg_len);
 
 	if(memcmp(msg, wam_tag, WAM_TAG_SIZE) != 0) return false;
 	//memcpy(nonce, msg + WAM_TAG_SIZE, NONCE_SIZE);
-	//memcpy(ciphertext, msg + WAM_TAG_SIZE + NONCE_SIZE, cipher_len);
+	memcpy(plaintext, msg + WAM_TAG_SIZE, plain_len);
 
-	plain_len = cipher_len - ENCMAC_SIZE;
 	// decryption
 	//err |= crypto_secretbox_open_easy(plaintext, ciphertext, cipher_len, nonce, channel->PSK->data);
 	//if(err) {fprintf(stdout, "\n\n ERROR DECRYPT.\nKey is:\n"); print_raw_hex(channel->PSK->data, PSK_SIZE);}
 	//if(err) return(false);
 
-
+	 //print_raw_hex(plaintext, msg_len);
 	// unpack data
 	_GET16(plaintext, WAM_OFFSET_DLEN, data_len);
 	_GET256(plaintext, WAM_OFFSET_PUBK, pubk);
@@ -202,11 +203,11 @@ fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 	memcpy(tmp_data, plaintext, WAM_OFFSET_SIGN); // copy msg until authsign
 	memcpy(tmp_data + WAM_OFFSET_SIGN, plaintext + WAM_OFFSET_DATA, data_len);  // copy app data
 	if(sign_hash_check(tmp_data, WAM_OFFSET_SIGN + data_len, signature, pubk) != WAM_OK) return(false);
-
+	printf("QUIIII\n");
 	// check ownership (hash(pubk) == index)
 	//if(ownership_check(pubk, channel->current_index.index) != WAM_OK) return(false);
 	if(ownership_check(pubk, channel->read_idx) != WAM_OK) return(false);
-
+	printf("QUIIII22222\n");
 
 	if(err != WAM_OK){ // redundant  
 		return(false);

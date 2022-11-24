@@ -758,9 +758,7 @@ int main() {
             .port = 443,
             .tls = true};
     ret = WAM_init_channel(&ch_send, 1, &testnet0tls);
-    ret = WAM_write(&ch_send, "Adfdfsfs", 58, true);
-    ret = WAM_write(&ch_send, "Adfdfsfs", 58, true);
-    ret = WAM_write(&ch_send, "Adfdfsfs", 58, true);
+    ret = WAM_write(&ch_send, "Adfdfsfs", strlen("Adfdfsfs"), true);
     printf("ret %d\n");
     set_channel_index_read(&ch_send, &ch_send.second_index.index);
 
