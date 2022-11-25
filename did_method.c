@@ -195,7 +195,7 @@ fail:
 
 int save_channel(WAM_channel *ch){
 
-/*     FILE *fp = NULL;
+    FILE *fp = NULL;
     // open the file in write binary mode
 
     fp = fopen("channel.txt", "wb");
@@ -209,26 +209,16 @@ int save_channel(WAM_channel *ch){
     fwrite(&(ch->node->port), sizeof(uint16_t), 1, fp);
     fwrite(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
     //start index
-    fwrite(ch->start_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fwrite(ch->start_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fwrite(&(ch->start_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
+    fwrite(ch->first_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fwrite(ch->first_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(ch->first_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fwrite(ch->first_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);//DA RIVEDERE
     //Ccurrent index
-    fwrite(ch->current_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fwrite(ch->current_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fwrite(&(ch->current_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
-    //next index
-    fwrite(ch->next_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fwrite(ch->next_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fwrite(&(ch->next_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
-    //read index
-    fwrite(ch->read_idx, sizeof(uint8_t), INDEX_SIZE, fp);
-    //PSK
-    fwrite(&(ch->PSK->data_len), sizeof(uint16_t), 1, fp);
-    fwrite(ch->PSK->data, sizeof(uint8_t), ch->PSK->data_len, fp);
-    //auth
-    fwrite(&(ch->auth->type), sizeof(int), 1, fp);//DA RIVEDERE
-    fwrite(&(ch->auth->data_len), sizeof(uint16_t), 1, fp);
-    fwrite(ch->auth->data, sizeof(uint8_t), ch->auth->data_len, fp);
+    fwrite(ch->second_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fwrite(ch->second_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(ch->second_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fwrite(ch->second_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);//DA RIVEDERE
+
     //sent_msg
     fwrite(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
     //recv_msg
@@ -241,20 +231,19 @@ int save_channel(WAM_channel *ch){
     fwrite(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
     //buff_hex_index
     fwrite(ch->buff_hex_index, sizeof(uint8_t), INDEX_HEX_SIZE, fp);
-    fclose(fp); */
+    fclose(fp);
     return 0;
 }
 
-//int load_channel(WAM_channel *ch,WAM_AuthCtx *a, WAM_Key *k, IOTA_Endpoint* endpoint){
-/*     FILE *fp = NULL;
+int load_channel(WAM_channel *ch, IOTA_Endpoint* endpoint){
+    FILE *fp = NULL;
     uint16_t sz;
     // open the file in write binary mode
     fp = fopen("channel.txt", "rb");
     if(fp == NULL) {
         return -1;
     }
-    ch->PSK = k;
-    ch->auth=a;
+    //endopint
     ch->node = endpoint;
     //id
     fread(&(ch->id), sizeof(uint16_t), 1, fp);
@@ -262,29 +251,16 @@ int save_channel(WAM_channel *ch){
     fread(&(ch->node->tls), sizeof(bool), 1, fp);
     fread(&(ch->node->port), sizeof(uint16_t), 1, fp);
     fread(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
-    //start index
-    fread(ch->start_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fread(ch->start_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fread(&(ch->start_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
-    //Ccurrent index
-    fread(ch->current_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fread(ch->current_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fread(&(ch->current_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
-    //next index
-    fread(ch->next_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fread(ch->next_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fread(&(ch->next_index.keys), sizeof(iota_keypair_t), 1, fp);//DA RIVEDERE
-    //read index
-    fread(ch->read_idx, sizeof(uint8_t), INDEX_SIZE, fp);
-    //PSK
-    fread(&sz, sizeof(uint16_t), 1, fp);
-    fread(ch->PSK->data, sizeof(uint8_t), sz, fp);
-    ch->PSK->data_len = sz;
-    //auth
-    fread(&(ch->auth->type), sizeof(uint8_t), 1, fp);//DA RIVEDERE
-    fread(&sz, sizeof(uint16_t), 1, fp);
-    fread(ch->auth->data, sizeof(uint8_t), sz, fp);
-    ch->auth->data_len = sz;
+    //first index
+    fread(ch->first_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fread(ch->first_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fread(ch->first_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fread(ch->first_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);//DA RIVEDERE
+    //second index
+    fread(ch->second_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    fread(ch->second_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(ch->second_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fwrite(ch->second_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);//DA RIVEDERE
     //sent_msg
     fread(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
     //recv_msg
@@ -292,14 +268,14 @@ int save_channel(WAM_channel *ch){
     //sent_bytes
     fread(&(ch->sent_bytes), sizeof(uint16_t), 1, fp);
     //recv_bytes
-    fread(&(ch->recv_bytes), sizeof(uint16_t), 1, fp);
+    fread(ch->recv_bytes, sizeof(uint16_t), 1, fp);
     //buff_hex_data
     fread(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
     //buff_hex_index
     fread(ch->buff_hex_index, sizeof(uint8_t), INDEX_HEX_SIZE, fp);
-    fclose(fp); */
-  //  return 0;
-//}
+    fclose(fp);
+    return 0;
+}
 
 int did_ott_create(method *methods, char* did_new) {
     uint8_t *index_bin;
@@ -314,7 +290,7 @@ int did_ott_create(method *methods, char* did_new) {
             .tls = true};
 
     
-    ret = WAM_init_channel(&ch_send, 1, &testnet0tls);
+    ret = WAM_write_init_channel(&ch_send, 1, &testnet0tls);
     if(ret != WAM_OK){
         goto fail;
     }
@@ -379,7 +355,7 @@ int did_ott_resolve(did_document *didDocument, char *did) {
             .tls = true};
     fprintf(stdout, "RESOLVE\n");
 
-    ret = WAM_init_channel(&ch_read, 1, &testnet0tls);
+    ret = WAM_read_init_channel(&ch_read, 1, &testnet0tls);
     if( ret != 0)
         return DID_RESOLVE_ERROR;
 
@@ -656,12 +632,6 @@ int did_ott_revoke(char * did){
     //load_channel(&ch_send,&a, &k, &testnet0tls);
 
     memset(write_buff, 0, REVOKE_MSG_SIZE);
-
-    if(memcmp(ch_send.second_index.index, revoke_index, INDEX_SIZE) == 0){
-        printf("Did already revoked\n");
-        ret = DID_REVOKE_ERROR;
-        goto fail;
-    }
 
     ret = WAM_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
     if(ret != WAM_OK){

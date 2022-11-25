@@ -35,7 +35,7 @@ uint8_t sign_hash_check(uint8_t* data, uint16_t data_len, uint8_t* recv_sign, ui
 void print_raw_hex(uint8_t* array, uint16_t array_len);
 
 
-uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpoint) {
+uint8_t WAM_write_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpoint) {
 	if((channel == NULL) || (endpoint == NULL)) return WAM_ERR_NULL; 
 	if(id < 0) return WAM_ERR_CH_INIT;
 
@@ -57,6 +57,24 @@ uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpo
 	return(WAM_OK);
 }
 
+uint8_t WAM_read_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpoint) {
+	if((channel == NULL) || (endpoint == NULL)) return WAM_ERR_NULL; 
+	if(id < 0) return WAM_ERR_CH_INIT;
+
+	// Clear buffers
+	memset(channel->buff_hex_data, 0, IOTA_MAX_MSG_SIZE);
+	memset(channel->buff_hex_index, 0, INDEX_HEX_SIZE);
+	
+	// Set fields
+	channel->id = id;
+	channel->node = endpoint;
+	channel->sent_msg = 0;
+	channel->recv_msg = 0;
+	channel->sent_bytes = 0;
+	channel->recv_bytes = 0;
+	
+	return(WAM_OK);
+}
 
 uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) {
 	uint8_t msg_to_read[WAM_MSG_SIZE]; uint16_t msg_len = 0;
@@ -563,12 +581,12 @@ void test_write_read_enc_largemsg() {
 							 .tls = true};
 
 	// write 2 msg
-	WAM_init_channel(&ch_send, 1, &testnet0tls);
+	WAM_write_init_channel(&ch_send, 1, &testnet0tls);
 	WAM_write(&ch_send, mylargemsg, DATA_SIZE-14, false);
 	fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
 
 	// read 2 msg
-	WAM_init_channel(&ch_read, 1, &testnet0tls);
+	WAM_read_init_channel(&ch_read, 1, &testnet0tls);
 	set_channel_index_read(&ch_read, ch_send.second_index.index);
 	ret = WAM_read(&ch_read, read_buff, &expected_size);
 	fprintf(stdout, "WAM_read ret:");
