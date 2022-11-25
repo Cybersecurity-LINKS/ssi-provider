@@ -6,12 +6,21 @@ SOURCE_2 = WAM.c
 SOURCE_3 = wam-wrapper.c
 
 
-LDFLAGS+=\
+#LDFLAGS+=\
 -I/home/ale/iota.c/build/include/ \
 -I/home/ale/iota.c/build/include/cjson/ \
 -I/home/ale/iota.c/build/include/client/ \
 -I/home/ale/iota.c/build/include/crypto/ \
 -I/home/ale/iota.c/build/include/core/ \
+
+LDFLAGS+=\
+-I/home/ale/Scaricati/iota.c-dev/build2/include/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/cjson/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/client/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/client/api/v1/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/crypto/ \
+-I/home/ale/Scaricati/iota.c-dev/build2/include/core/ \
+-L/home/ale/Scaricati/iota.c-dev/build2/lib/\
 
 LDFLAGS += \
 -L/home/ale/iota.c/build/lib/ \

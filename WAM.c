@@ -24,14 +24,14 @@ bool is_null_index(uint8_t* idx);
 uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2);
 uint8_t send_wam_message(WAM_channel* ch, uint8_t* raw_data, uint16_t raw_data_size);
 uint8_t convert_wam_endpoint(IOTA_Endpoint* wam_ep, iota_client_conf_t *ep);
-uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg, uint16_t* msg_len, uint8_t* next_idx);
-bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uint8_t* next_idx);
+uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg, uint16_t* msg_len);
+bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel);
 uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index);
 uint8_t get_msg_from_id(WAM_channel* channel, char* msg_id, res_message_t* response_info, uint8_t* msg_bin, uint16_t* msg_bin_len);
 uint8_t get_msg_id_list(WAM_channel* channel, res_find_msg_t* response_info, find_msg_t** list, uint32_t *list_len);
 uint8_t sign_hash_check(uint8_t* data, uint16_t data_len, uint8_t* recv_sign, uint8_t* recv_pubk);
 //uint8_t set_channel_index_read(WAM_channel* channel, uint8_t* start_index_bin);
-uint8_t set_channel_current_index(WAM_channel* channel, uint8_t* index_bin);
+//uint8_t set_channel_current_index(WAM_channel* channel, uint8_t* index_bin);
 void print_raw_hex(uint8_t* array, uint16_t array_len);
 
 
@@ -54,7 +54,6 @@ uint8_t WAM_init_channel(WAM_channel* channel, uint16_t id, IOTA_Endpoint* endpo
 	channel->sent_bytes = 0;
 	channel->recv_bytes = 0;
 	
-
 	return(WAM_OK);
 }
 
@@ -74,7 +73,7 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 	messages = get_messages_number(expected_size);
 	for(i = 0; i < messages; i++) {
 		response = res_find_msg_new();
-		// leggi lista msg_id at channel->curr_index  <= response, count, LISTA
+		// leggi lista msg_id at channel->read_index  <= response, count, LISTA
 		if((ret = get_msg_id_list(channel, response, &msg_id_list, &msg_id_list_len)) != WAM_OK) {
 			break;
 		}
@@ -82,7 +81,7 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 		// trova il msg_wam nella lista  <= MSG
 		// se trovato => update: buffer with msg, offset, next index, channel counters
 		// se non trovato => ritorna err (unexpected_end, notfound)
-		if((ret = find_wam_msg(msg_id_list, channel, msg_to_read, &msg_len, next_index)) == WAM_OK){
+		if((ret = find_wam_msg(msg_id_list, channel, msg_to_read, &msg_len)) == WAM_OK){
 			if(s + msg_len > expected_size) {
 				// does not fit
 				memcpy(outData + s, msg_to_read, (*outDataSize - s));  // copy only what fits
@@ -94,8 +93,7 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 				memcpy(outData + s, msg_to_read, msg_len);   // update buffer with msg
 				s += msg_len;   // update offset
 			}			
-			set_channel_current_index(channel, next_index);   // update index
-
+			//DA CONTROLLARE
 			channel->recv_msg++;   // update counter msg
 			channel->recv_bytes += msg_len;   // update counter bytes
 
@@ -116,12 +114,11 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 	//*outDataSize = s;
 	//return(WAM_NOT_FOUND);
 
-    return ( ret );
-	//return(WAM_OK);
+    return ret;
 }
 
 
-uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg, uint16_t* msg_len, uint8_t* next_idx) {
+uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg, uint16_t* msg_len) {
 	char **msg_id = NULL; // list pointer
 	res_message_t *response_msg = NULL;
 
@@ -131,9 +128,10 @@ uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg
 	// get msg data from msg_id-list 1-by-1
 	msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
 	while (msg_id != NULL) {
+		//printf("msg id\n"); print_raw_hex(msg_id, msg_len);
 		response_msg = res_message_new();
 		if(get_msg_from_id(channel, *msg_id, response_msg, msg, msg_len) == WAM_OK) {
-			if(is_wam_valid_msg(msg, msg_len, channel, next_idx)){
+			if(is_wam_valid_msg(msg, msg_len, channel)){
 				res_message_free(response_msg);
 				return(WAM_OK);
 			}
@@ -144,16 +142,11 @@ uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg
 	}
 
 	return(WAM_NOT_FOUND);
-	//p = (char**) utarray_next(response_info->u.msg_ids->msg_ids, p);
-	//while (p != NULL) {
-	//	WAM_read_msg_by_id(); //(channel, *p, index, next_index, pub_authkey);
-	//	p = (char**) utarray_next(response_info->u.msg_ids->msg_ids, p);
-	//}
 }
 
 
 // se i check vanno a buon fine, aggiorno msg e msg_len con solo i dati
-bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uint8_t* next_idx) {
+bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel) {
 	uint8_t tmp_data[WAM_MSG_PLAIN_SIZE];
 	uint8_t plaintext[WAM_MSG_PLAIN_SIZE];
 	uint8_t signature[SIGN_SIZE];
@@ -203,13 +196,11 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel, uin
 	memcpy(tmp_data, plaintext, WAM_OFFSET_SIGN); // copy msg until authsign
 	memcpy(tmp_data + WAM_OFFSET_SIGN, plaintext + WAM_OFFSET_DATA, data_len);  // copy app data
 	if(sign_hash_check(tmp_data, WAM_OFFSET_SIGN + data_len, signature, pubk) != WAM_OK) return(false);
-	printf("QUIIII\n");
 	// check ownership (hash(pubk) == index)
 	//if(ownership_check(pubk, channel->current_index.index) != WAM_OK) return(false);
-	print_raw_hex(pubk, PUBK_SIZE);
-	print_raw_hex(channel->read_idx, INDEX_SIZE);
+	//print_raw_hex(pubk, PUBK_SIZE);
+	//print_raw_hex(channel->read_idx, INDEX_SIZE);
 	if(ownership_check(pubk, channel->read_idx) != WAM_OK) return(false);
-	printf("QUIIII22222\n");
 
 	if(err != WAM_OK){ // redundant  
 		return(false);
@@ -295,13 +286,8 @@ uint8_t get_msg_id_list(WAM_channel* channel, res_find_msg_t* response_info, fin
 	if(response_info->is_error == false) {
 		*list = response_info->u.msg_ids;
 		*list_len = response_info->u.msg_ids->count;
+		printf("%d msg count\n",response_info->u.msg_ids->count);
 		return(WAM_OK);
-		//if(response_info->u.msg_ids->count > 1) return(WAM_ERR_RECV_MANYMSG);
-		//p = (char**) utarray_next(response_info->u.msg_ids->msg_ids, p);
-		//while (p != NULL) {
-		//	WAM_read_msg_by_id(); //(channel, *p, index, next_index, pub_authkey);
-		//	p = (char**) utarray_next(response_info->u.msg_ids->msg_ids, p);
-		//}
 	} else {
 		return(WAM_ERR_RECV);
 	}
@@ -382,7 +368,7 @@ uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uin
 //fprintf(stdout, "SENT - NIDX:\n"); print_raw_hex(channel->next_index.index, INDEX_SIZE);
 //fprintf(stdout, "SENT - AUTH:\n"); print_raw_hex(AuthSign, AUTH_SIZE);
 //fprintf(stdout, "SENT - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
-fprintf(stdout, "SENT - DATA:\n"); print_raw_hex(data, data_len);
+//fprintf(stdout, "SENT - DATA:\n"); print_raw_hex(data, data_len);
 
 	return(err);
 }
@@ -394,7 +380,6 @@ uint8_t sign_hash_check(uint8_t* data, uint16_t data_len, uint8_t* recv_sign, ui
 	iota_blake2b_sum(data, data_len, hash, BLAKE2B_HASH_SIZE);
 //fprintf(stdout, "HASHDO - DATA:\n"); print_raw_hex(data, data_len);
 //fprintf(stdout, "HASHDO - HASH:\n"); print_raw_hex(hash, BLAKE2B_HASH_SIZE);
-
 	if(crypto_sign_ed25519_verify_detached(recv_sign, hash, BLAKE2B_HASH_SIZE, recv_pubk) != 0) {
 		return(WAM_ERR_CRYPTO_VERSIGN);
 	}
@@ -406,7 +391,7 @@ uint8_t sign_hash_do(uint8_t* data, size_t data_len, uint8_t* key, uint16_t key_
 	int ret;
 	uint8_t hash[BLAKE2B_HASH_SIZE];
 	memset(hash, 0, BLAKE2B_HASH_SIZE);
-										   // TODO check if sig_len must be a var! Seems no;
+										   
 	if ((ret = iota_blake2b_sum(data, data_len, hash, BLAKE2B_HASH_SIZE)) != 0 ) ret = WAM_ERR_CRYPTO_BLACKE2B;
 //fprintf(stdout, "HASHDO - DATA:\n"); print_raw_hex(data, data_len);
 //fprintf(stdout, "HASHDO - HASH:\n"); print_raw_hex(hash, BLAKE2B_HASH_SIZE);
@@ -427,25 +412,20 @@ uint16_t get_messages_number(uint16_t len) {
 
 // copy into start and curr idx the index to read from (0 to next index)
 uint8_t set_channel_index_read(WAM_channel* channel, uint8_t* start_index_bin) {
-	// set_start_read_idx(start=idx, curr=idx, next=0)
-	/*reset_index(&(channel->start_index));
-	memcpy(channel->start_index.index, start_index_bin, INDEX_SIZE);
-	copy_iota_index(&(channel->current_index), &(channel->start_index));
-	reset_index(&(channel->next_index));*/
-	
+
 	memcpy(channel->read_idx, start_index_bin, INDEX_SIZE);
 
 	return(WAM_OK);
 }
 
 
-uint8_t set_channel_current_index(WAM_channel* channel, uint8_t* index_bin) {
+//uint8_t set_channel_current_index(WAM_channel* channel, uint8_t* index_bin) {
 
 /* 	memcpy(channel->current_index.index, index_bin, INDEX_SIZE);
 	memcpy(channel->read_idx, index_bin, INDEX_SIZE); */
 
-	return(WAM_OK);
-}
+	//return(WAM_OK);
+//}
 
 
 uint8_t reset_index(IOTA_Index* index){
@@ -492,15 +472,15 @@ uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2) {
 	iota_crypto_keypair(idx1->berry, &(idx1->keys));
 	// first index = HashB2B(PubK1) = second random seed
 	if ((ret = address_from_ed25519_pub(idx1->keys.pub, idx1->index)) != 0) return WAM_ERR_CRYPTO_E25519;
-	printf("idx1 index \n"); print_raw_hex(idx1->index, INDEX_SIZE);
+	//printf("idx1 index \n"); print_raw_hex(idx1->index, INDEX_SIZE);
 	//copy berry DA CONTROLLARE
 	memcpy(idx2->berry, idx1->index, SEED_SIZE);
-	printf("idx2 berry \n", idx2->berry);print_raw_hex(idx2->berry, SEED_SIZE);
+	//printf("idx2 berry \n", idx2->berry);print_raw_hex(idx2->berry, SEED_SIZE);
 	// generate the second keypair from second random 
 	iota_crypto_keypair(idx2->berry, &(idx2->keys));
 	// second index = HashB2B(PubK2)
 	if ((ret = address_from_ed25519_pub(idx2->keys.pub, idx2->index)) != 0) return WAM_ERR_CRYPTO_E25519;
-	printf("idx2 index \n");print_raw_hex(idx2->index, INDEX_SIZE);
+	//printf("idx2 index \n");print_raw_hex(idx2->index, INDEX_SIZE);
 	return(WAM_OK);
 }
 
@@ -572,12 +552,9 @@ void dummy_print(uint8_t* str_hello) {
 }
 
 void test_write_read_enc_largemsg() {
-/* 	uint8_t mykey[]="supersecretkeyforencryptionalby";
 	WAM_channel ch_send, ch_read;
-	WAM_AuthCtx a; a.type = AUTHS_NONE;
-	WAM_Key k; k.data = mykey; k.data_len = (uint16_t) strlen((char*)mykey);
-	uint8_t mylargemsg[DATA_SIZE+14];
-	uint8_t read_buff[2000];
+	uint8_t mylargemsg[DATA_SIZE-14];
+	uint8_t read_buff[DATA_SIZE];
 	uint16_t expected_size = 2000;
 	uint8_t ret = 0;
 	
@@ -586,18 +563,18 @@ void test_write_read_enc_largemsg() {
 							 .tls = true};
 
 	// write 2 msg
-	WAM_init_channel(&ch_send, 1, &testnet0tls, &k, &a);
-	WAM_write(&ch_send, mylargemsg, DATA_SIZE+14, false);
+	WAM_init_channel(&ch_send, 1, &testnet0tls);
+	WAM_write(&ch_send, mylargemsg, DATA_SIZE-14, false);
 	fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
 
 	// read 2 msg
-	WAM_init_channel(&ch_read, 1, &testnet0tls, &k, &a);
-	set_channel_index_read(&ch_read, ch_send.start_index.index);
+	WAM_init_channel(&ch_read, 1, &testnet0tls);
+	set_channel_index_read(&ch_read, ch_send.second_index.index);
 	ret = WAM_read(&ch_read, read_buff, &expected_size);
 	fprintf(stdout, "WAM_read ret:");
 	fprintf(stdout, "\n\t val=%d", ret);
 	fprintf(stdout, "\n\t expctsize=%d \t", expected_size);
 	fprintf(stdout, "\n\t msg_read=%d \t", ch_read.recv_msg);
 	fprintf(stdout, "\n\t bytes_read=%d \t", ch_read.recv_bytes);
-	fprintf(stdout, "\n\t cmpbuff=%s \n", (memcmp(mylargemsg, read_buff, DATA_SIZE+14)==0) ? "success" : "failure"); */
+	fprintf(stdout, "\n\t cmpbuff=%s \n", (memcmp(mylargemsg, read_buff, DATA_SIZE-14)==0) ? "success" : "failure");
 }

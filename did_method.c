@@ -371,7 +371,6 @@ int did_ott_resolve(did_document *didDocument, char *did) {
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
     uint8_t revoke[INDEX_SIZE];
-    int valid_did_doc_found = 0;
     
     memset(revoke,0, INDEX_SIZE);
 
@@ -394,19 +393,18 @@ int did_ott_resolve(did_document *didDocument, char *did) {
         return DID_RESOLVE_ERROR;
 
     set_channel_index_read(&ch_read, index);
-
-    while((ret = WAM_read(&ch_read, tmp_buff, &expected_size)) == WAM_OK){
-        valid_did_doc_found = 1;
+    if((ret = WAM_read(&ch_read, tmp_buff, &expected_size)) == WAM_OK){
+    //while((ret = WAM_read(&ch_read, tmp_buff, &expected_size)) == WAM_OK){
        // printf("%s\n",ch_read.next_index.index);
       //  printf("%s\n",revoke);
    //     if(memcmp(ch_read.current_index.index, revoke, INDEX_SIZE) == 0){
       //      return DID_RESOLVE_REVOKED;
      //   }
+  //   printf("DSADSDS\n");
         memcpy(read_buff, tmp_buff, DATA_SIZE);
         memset(tmp_buff, 0, DATA_SIZE);
     }
-
-    if(valid_did_doc_found == 0)
+    else
         return DID_RESOLVE_NOT_FOUND;
 
     fprintf(stdout, "WAM_read ret:");
@@ -639,7 +637,6 @@ int did_ott_update(method *methods,char * did) {
 int did_ott_revoke(char * did){
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
-    uint8_t mykey[] = "supersecretkeyforencryptionalby"; //temporary, I think must be saved somewhere else
     WAM_channel ch_send;
 
     uint8_t write_buff[REVOKE_MSG_SIZE];
@@ -659,39 +656,6 @@ int did_ott_revoke(char * did){
     //load_channel(&ch_send,&a, &k, &testnet0tls);
 
     memset(write_buff, 0, REVOKE_MSG_SIZE);
-
-    //extract hex_index and convert to index
-    //TODO: DA TOGLIERE
-//    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); //len must not include the \0
-//    if (ret != 0) {
-//        goto fail;
-//    }
-//    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
-//    if(ret != 0){
-//        goto fail;
-//    }
-//    set_channel_index_read(&ch_send, index);
-//    //fprintf(stdout, "index %s\n", hex_index);
-//
-//    //first read to see if it is a valid did
-//    if(WAM_read(&ch_send, tmp_buff, &expected_size) != WAM_OK) {
-//        ret = DID_REVOKE_ERROR;
-//        printf("No valid did document to revoke found\n");
-//        goto fail;
-//    }
-//
-//    //second read to be sure that is not already revoked or that was passed to the function the last did of the chain
-//    if(WAM_read(&ch_send, tmp_buff, &expected_size) == WAM_OK) {
-//        if(memcmp(ch_send.current_index.index, revoke_index, INDEX_SIZE) == 0){
-//            printf("Did already revoked\n");
-//            ret = DID_REVOKE_ERROR;
-//            goto fail;
-//        } else {
-//            printf("Did is not the last one of the chain\n");
-//            ret = DID_REVOKE_ERROR;
-//            goto fail;
-//        }
-//    }
 
     if(memcmp(ch_send.second_index.index, revoke_index, INDEX_SIZE) == 0){
         printf("Did already revoked\n");
@@ -726,12 +690,12 @@ int main() {
     method m2[SIZE2];
 
     m[0].method_type = AuthenticationMethod;
-    m[0].pk_pem.p = (unsigned char *) KEY;
+    m[0].pk_pem.p = (unsigned char *) KEY2;
     m[0].pk_pem.len = strlen(KEY);
     m[0].type = RsaVerificationKey2018;
 
     m[1].method_type = AssertionMethod;
-    m[1].pk_pem.p = (unsigned char *) KEY2;
+    m[1].pk_pem.p = (unsigned char *) KEY;
     m[1].pk_pem.len = strlen(KEY2);
     m[1].type = Ed25519VerificationKey2018;
 
@@ -756,6 +720,8 @@ int main() {
         
     }
     //RESOLVE
+    printf("%s\n", my_did_str);
+    //getc(stdin);
     ret = did_ott_resolve(didDocument, my_did_str);
     if(ret == DID_RESOLVE_REVOKED){
         printf("Did Document Revoked\n");
@@ -764,23 +730,7 @@ int main() {
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
     }
-/* 
-    uint8_t tmp_buff[DATA_SIZE];
-    uint16_t expected_size = DATA_SIZE;
-    WAM_channel ch_send;
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-            .port = 443,
-            .tls = true};
-    ret = WAM_init_channel(&ch_send, 1, &testnet0tls);
-    ret = WAM_write(&ch_send, "gdsfsefidehbfehfwdvehwfvhuwvqhwvdhgqwvehv    woevhwqveqwvvwghevghwvqhegvwghevqwhge", strlen("gdsfsefidehbfehfwdvehwfvhuwvqhwvdhgqwvehv    woevhwqveqwvvwghevghwvqhegvwghevqwhge<bjfbpaòbashfasddddddfa"), false);
-    printf("ret %d\n");
-    set_channel_index_read(&ch_send, &ch_send.second_index.index);
 
-    ret = WAM_read(&ch_send,tmp_buff, &expected_size);
-    //tmp_buff[expected_size] ='\n';
-    tmp_buff[ch_send.recv_bytes] = '\0';
-    printf("\nret %d\n", expected_size);
-    printf("\nret %s\n", tmp_buff); */
 /*     //CREATE
     ret = create(m, my_did_str);
     if(ret != DID_CREATE_OK){
