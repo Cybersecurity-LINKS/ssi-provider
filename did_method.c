@@ -259,8 +259,8 @@ int load_channel(WAM_channel *ch, IOTA_Endpoint* endpoint){
     //second index
     fread(ch->second_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
     fread(ch->second_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fwrite(ch->second_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
-    fwrite(ch->second_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);//DA RIVEDERE
+    fread(ch->second_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fread(ch->second_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);//DA RIVEDERE
     //sent_msg
     fread(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
     //recv_msg
@@ -268,7 +268,7 @@ int load_channel(WAM_channel *ch, IOTA_Endpoint* endpoint){
     //sent_bytes
     fread(&(ch->sent_bytes), sizeof(uint16_t), 1, fp);
     //recv_bytes
-    fread(ch->recv_bytes, sizeof(uint16_t), 1, fp);
+    fread(&(ch->recv_bytes), sizeof(uint16_t), 1, fp);
     //buff_hex_data
     fread(ch->buff_hex_data, sizeof(uint8_t), IOTA_MAX_MSG_SIZE, fp);
     //buff_hex_index
@@ -347,7 +347,9 @@ int did_ott_resolve(did_document *didDocument, char *did) {
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
     uint8_t revoke[INDEX_SIZE];
-    
+    const uint8_t wam_tag_revoked[WAM_TAG_SIZE] = {
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     memset(revoke,0, INDEX_SIZE);
 
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
@@ -546,12 +548,7 @@ int did_ott_update(method *methods,char * did) {
     uint8_t *index_bin;
     char index_hex[INDEX_HEX_SIZE];
     WAM_channel ch_send;
-    uint8_t write_buff[DATA_SIZE];
-
     int ret=0;
-    //uint16_t expected_size=DATA_SIZE;
-    uint8_t revoke_index[INDEX_SIZE];
-    memset(revoke_index,0,INDEX_SIZE);
 
     fprintf(stdout, "UPDATE\n");
 
@@ -559,20 +556,7 @@ int did_ott_update(method *methods,char * did) {
             .port = 443,
             .tls = true};
 
-    //load_channel(&ch_send,&a, &k, &testnet0tls);
-    memset(write_buff, 0, DATA_SIZE);
-
-    //TODO: DA TOGLIERE
-//    //extract hex_index and convert to index
-//    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); //len must not include the \0
-//    if (ret != 0) {
-//        goto fail;
-//    }
-//    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
-//    if(ret != 0){
-//        goto fail;
-//    }
-   
+    load_channel(&ch_send, &testnet0tls);
 
     index_bin = ch_send.second_index.index; 
     ret = bin_2_hex(index_bin, INDEX_SIZE, index_hex, INDEX_HEX_SIZE);
@@ -620,25 +604,24 @@ int did_ott_revoke(char * did){
     uint16_t expected_size=DATA_SIZE;
     uint8_t ret=0;
     uint8_t revoke_index[INDEX_SIZE];
+    const uint8_t wam_tag_revoked[WAM_TAG_SIZE] = {
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     memset(revoke_index,0,INDEX_SIZE);
     //uint8_t nxt_idx[INDEX_HEX_SIZE];
 
     fprintf(stdout, "REVOKE\n");
-
+    memset(write_buff, 0, REVOKE_MSG_SIZE);
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
             .port = 443,
             .tls = true};
 
-    //load_channel(&ch_send,&a, &k, &testnet0tls);
+    load_channel(&ch_send, &testnet0tls);
 
-    memset(write_buff, 0, REVOKE_MSG_SIZE);
-
-    ret = WAM_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
+    ret = WAM_write(&ch_send, wam_tag_revoked, WAM_TAG_SIZE, true);
     if(ret != WAM_OK){
         goto fail;
     }
-
-    save_channel(&ch_send);
 
     return DID_REVOKE_OK;
 
@@ -684,7 +667,7 @@ int main() {
         return ALLOC_FAILED;
     }
     did_document_init(didDocument);
-     ret = did_ott_create(m, my_did_str);
+    ret = did_ott_create(m, my_did_str);
     if(ret != DID_CREATE_OK){
         printf("Did Document creation failed\n");
         
@@ -700,6 +683,37 @@ int main() {
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
     }
+
+    ret = did_ott_update(m2,my_did_str);
+
+    if(ret != DID_UPDATE_OK){
+        printf("Update failed");
+    }
+
+    //RESOLVE
+    ret = did_ott_resolve(didDocument, my_did_str);
+    if(ret == DID_RESOLVE_REVOKED){
+        printf("Did Document Revoked\n");
+        ret = 0;
+    } else if( ret == DID_RESOLVE_OK){
+        printf("Did Document OK\n");
+    }
+    ret = did_ott_revoke(my_did_str);
+    if(ret != DID_REVOKE_OK){
+        printf("Revoke failed");
+    }
+
+    //RESOLVE
+    ret = did_ott_resolve(didDocument, my_did_str);
+    if(ret == DID_RESOLVE_REVOKED){
+        printf("Did Document Revoked\n");
+        ret = 0;
+    } else if( ret == DID_RESOLVE_OK){
+        printf("Did Document OK\n");
+    }
+
+
+
 
 /*     //CREATE
     ret = create(m, my_did_str);
