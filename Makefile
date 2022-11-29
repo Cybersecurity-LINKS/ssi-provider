@@ -2,8 +2,8 @@ CC = gcc
 CFLAGS = -Wall -g
 
 SOURCE_1 = did_method.c
-SOURCE_2 = WAM.c 
-SOURCE_3 = wam-wrapper.c
+SOURCE_2 = OTT.c 
+SOURCE_3 = ott-wrapper.c
 
 
 #LDFLAGS+=\

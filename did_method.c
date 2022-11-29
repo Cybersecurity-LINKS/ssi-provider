@@ -193,7 +193,7 @@ fail:
     return NULL;
 }
 
-int save_channel(WAM_channel *ch){
+int save_channel(OTT_channel *ch){
 
     FILE *fp = NULL;
     // open the file in write binary mode
@@ -235,7 +235,7 @@ int save_channel(WAM_channel *ch){
     return 0;
 }
 
-int load_channel(WAM_channel *ch, IOTA_Endpoint* endpoint){
+int load_channel(OTT_channel *ch, IOTA_Endpoint* endpoint){
     FILE *fp = NULL;
     uint16_t sz;
     // open the file in write binary mode
@@ -282,7 +282,7 @@ int did_ott_create(method *methods, char* did_new) {
     char index[INDEX_HEX_SIZE];
     uint8_t ret;
     char did[DID_LEN] = "";
-    WAM_channel ch_send;
+    OTT_channel ch_send;
 
     fprintf(stdout, "CREATE\n");
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
@@ -290,8 +290,8 @@ int did_ott_create(method *methods, char* did_new) {
             .tls = true};
 
     
-    ret = WAM_write_init_channel(&ch_send, 1, &testnet0tls);
-    if(ret != WAM_OK){
+    ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
+    if(ret != OTT_OK){
         goto fail;
     }
 
@@ -309,8 +309,8 @@ int did_ott_create(method *methods, char* did_new) {
         goto fail;
     }
 
-    ret = WAM_write(&ch_send, (unsigned char *) did_doc, strlen(did_doc), false);
-    if(ret != WAM_OK){
+    ret = OTT_write(&ch_send, (unsigned char *) did_doc, strlen(did_doc), false);
+    if(ret != OTT_OK){
         goto fail;
     }
     fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
@@ -341,7 +341,7 @@ static int sub_string(const char *input, int offset, int len, char *dest) {
 int did_ott_resolve(did_document *didDocument, char *did) {
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
-    WAM_channel ch_read;
+    OTT_channel ch_read;
     uint8_t read_buff[DATA_SIZE];
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
@@ -354,7 +354,7 @@ int did_ott_resolve(did_document *didDocument, char *did) {
             .tls = true};
     fprintf(stdout, "RESOLVE\n");
 
-    ret = WAM_read_init_channel(&ch_read, 1, &testnet0tls);
+    ret = OTT_read_init_channel(&ch_read, 1, &testnet0tls);
     if( ret != 0)
         return DID_RESOLVE_ERROR;
 
@@ -368,14 +368,14 @@ int did_ott_resolve(did_document *didDocument, char *did) {
         return DID_RESOLVE_ERROR;
 
     set_channel_index_read(&ch_read, index);
-    ret = WAM_read(&ch_read, read_buff, &expected_size);
+    ret = OTT_read(&ch_read, read_buff, &expected_size);
     
     if(ret == OTT_REVOKE)
         return DID_RESOLVE_REVOKED;
-    else if(ret != WAM_OK)
+    else if(ret != OTT_OK)
         return DID_RESOLVE_NOT_FOUND;
 
-    fprintf(stdout, "WAM_read ret:");
+    fprintf(stdout, "OTT_read ret:");
     fprintf(stdout, "\n\t val=%d", ret);
     fprintf(stdout, "\n\t expctsize=%d \t", expected_size);
     fprintf(stdout, "\n\t msg_read=%d \t", ch_read.recv_msg);
@@ -537,7 +537,7 @@ int did_ott_update(method *methods,char * did) {
     char next_index_hex[INDEX_HEX_SIZE];
     uint8_t *index_bin;
     char index_hex[INDEX_HEX_SIZE];
-    WAM_channel ch_send;
+    OTT_channel ch_send;
     int ret=0;
 
     fprintf(stdout, "UPDATE\n");
@@ -568,8 +568,8 @@ int did_ott_update(method *methods,char * did) {
     //fprintf(stdout, "DID Document length = %lu\n", strlen(did_doc));
     //save the new did
 
-    ret = WAM_write(&ch_send, (unsigned char *) did_doc, strlen(did_doc), false);
-    if( ret != WAM_OK){
+    ret = OTT_write(&ch_send, (unsigned char *) did_doc, strlen(did_doc), false);
+    if( ret != OTT_OK){
         goto fail;
     }
 
@@ -587,7 +587,7 @@ int did_ott_update(method *methods,char * did) {
 int did_ott_revoke(char * did){
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
-    WAM_channel ch_send;
+    OTT_channel ch_send;
 
     uint8_t write_buff[REVOKE_MSG_SIZE];
     uint8_t tmp_buff[DATA_SIZE];
@@ -606,8 +606,8 @@ int did_ott_revoke(char * did){
 
     load_channel(&ch_send, &testnet0tls);
 
-    ret = WAM_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
-    if(ret != WAM_OK){
+    ret = OTT_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
+    if(ret != OTT_OK){
         goto fail;
     }
 

@@ -41,7 +41,7 @@ static void *didprovider_create(void *sig1, size_t siglen1,int type1,void *sig2,
     printf("DID OTT CREATE\n");
     
     ret = did_ott_create(m,my_did_str);
-    if(ret != WAM_OK)
+    if(ret != OTT_OK)
         return NULL;
     return my_did_str;
 }

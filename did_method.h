@@ -1,7 +1,7 @@
 #ifndef DID_METHOD_H
 #define DID_METHOD_H
 
-#include "WAM.h"
+#include "OTT.h"
 #include "time.h"
 #include <string.h>
 

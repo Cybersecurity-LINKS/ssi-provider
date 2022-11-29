@@ -1,5 +1,5 @@
-#ifndef WAM_DEF_H
-#define WAM_DEF_H
+#ifndef OTT_DEF_H
+#define OTT_DEF_H
 
 
 
@@ -47,39 +47,25 @@
 #define INDEX_SIZE            (32)   // =ED25519_ADDRESS_BYTES
 #define PUBK_SIZE             (32)   // =ED_PUBLIC_KEY_BYTES
 #define SIGN_SIZE             (64)   // =ED_SIGNATURE_BYTES
-//#define AUTH_SIZE             (64)   // =2*STSAFEA_XYRS_ECDSA_SHA256_LENGTH
 
 // Utils
 #define SEED_SIZE             (32)   // =IOTA_SEED_BYTES, =ED25519_ADDRESS_BYTES
 #define PRIK_SIZE             (64)   // =ED_PRIVATE_KEY_BYTES
-//#define PSK_SIZE              (32)   // =crypto_secretbox_KEYBYTES
-//#define NONCE_SIZE            (24)   // =crypto_secretbox_NONCEBYTES
 #define ENCMAC_SIZE           (16)   // =crypto_secretbox_MACBYTES
-#define WAM_TAG_SIZE          (32)   // =customizable
+#define OTT_TAG_SIZE          (32)   // =customizable
 
 #define BLAKE2B_HASH_SIZE     (32)   // =CRYPTO_BLAKE2B_HASH_BYTES
-//OLD
+
 // Message
-//#define WAM_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE + AUTH_SIZE + DLEN_SIZE)
-//#define WAM_MSG_PLAIN_SIZE        (WAM_MSG_HEADER_SIZE + DATA_SIZE)
-//#define WAM_MSG_CIPH_SIZE         (WAM_MSG_PLAIN_SIZE + ENCMAC_SIZE)
-//#define WAM_MSG_SIZE              (WAM_MSG_CIPH_SIZE + NONCE_SIZE + WAM_TAG_SIZE)
-// Message
-#define WAM_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE  + DLEN_SIZE)
-#define WAM_MSG_PLAIN_SIZE        (WAM_MSG_HEADER_SIZE + DATA_SIZE)
-//#define WAM_MSG_CIPH_SIZE         (WAM_MSG_PLAIN_SIZE + ENCMAC_SIZE)
-#define WAM_MSG_SIZE              (WAM_MSG_PLAIN_SIZE + WAM_TAG_SIZE)
-/* #define WAM_MSG_ENCRYPTED_SIZE    (WAM_MSG_HEADER_SIZE + DATA_SIZE + ENCMAC_SIZE + NONCE_SIZE)
-#define WAM_MSG_SIZE          (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE + AUTH_SIZE + DLEN_SIZE + DATA_SIZE)
-#define WAM_MSG_ENC_SIZE      (WAM_MSG_SIZE + ENCMAC_SIZE)
-#define XXXX                  (MSG_ENC_SIZE + NONCE_SIZE)
-#define YYYY                  (XXXX + WAM_TAG_SIZE) */
+#define OTT_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE  + DLEN_SIZE)
+#define OTT_MSG_PLAIN_SIZE        (OTT_MSG_HEADER_SIZE + DATA_SIZE)
+#define OTT_MSG_SIZE              (OTT_MSG_PLAIN_SIZE + OTT_TAG_SIZE)
 
 // Others
 #define INDEX_HEX_SIZE           (1 + 2 * INDEX_SIZE)
 #define MSGID_HEX_SIZE           (64)   // =IOTA_MESSAGE_ID_HEX_BYTES
 #define ENDPTNAME_SIZE           (64)   // =0.25*IOTA_ENDPOINT_MAX_LEN
-#define WAM_MSG_HEX_SIZE         (1 + 2 * WAM_MSG_SIZE)
+#define OTT_MSG_HEX_SIZE         (1 + 2 * OTT_MSG_SIZE)
 
 
 
@@ -90,46 +76,36 @@
 /* --------------------------------------------------------------------- */
 enum {
 	OTT_REVOKE = 1,
-	WAM_OK = 0,
-    WAM_BROKEN_MESSAGE = 0x33,
-	WAM_NOT_FOUND = 0x44,
-	WAM_BUFF_FULL = 0x55,
-	WAM_NO_MESSAGES = 0xE3,
+	OTT_OK = 0,
+    OTT_BROKEN_MESSAGE = 0x33,
+	OTT_NOT_FOUND = 0x44,
+	OTT_BUFF_FULL = 0x55,
+	OTT_NO_MESSAGES = 0xE3,
 
-	WAM_ERR_CH_INIT = 0xF1,
-	WAM_ERR_NULL = 0xF2,
-	WAM_ERR_SIZE_EXCEEDED = 0xF3,
-	WAM_ERR_MAX_RETRY_EXCEEDED = 0xF4,
-	WAM_ERR_SEND = 0xF5,
-	WAM_ERR_SEND_API = 0xF6,
-	WAM_ERR_RECV = 0xF7,
-	WAM_ERR_RECV_API = 0xF8,
-	WAM_ERR_RECV_MANYMSG = 0xF9,
-	WAM_ERR_CRYPTO_E25519 = 0xFA,
-	WAM_ERR_CRYPTO_DEC = 0xFB,
-	WAM_ERR_CRYPTO_MAC = 0xFC,
-	WAM_ERR_CRYPTO_VERSIGN = 0xFD,
-	WAM_ERR_CRYPTO_VERAUTHSIGN = 0xFE,
-	WAM_ERR_CRYPTO_OWNERSHIP = 0xFF,
-	WAM_ERR_CRYPTO_BLACKE2B = 0x100,
-	WAM_ERR_CRYPTO_SIGN = 0x101
+	OTT_ERR_CH_INIT = 0xF1,
+	OTT_ERR_NULL = 0xF2,
+	OTT_ERR_SIZE_EXCEEDED = 0xF3,
+	OTT_ERR_MAX_RETRY_EXCEEDED = 0xF4,
+	OTT_ERR_SEND = 0xF5,
+	OTT_ERR_SEND_API = 0xF6,
+	OTT_ERR_RECV = 0xF7,
+	OTT_ERR_RECV_API = 0xF8,
+	OTT_ERR_RECV_MANYMSG = 0xF9,
+	OTT_ERR_CRYPTO_E25519 = 0xFA,
+	OTT_ERR_CRYPTO_DEC = 0xFB,
+	OTT_ERR_CRYPTO_MAC = 0xFC,
+	OTT_ERR_CRYPTO_VERSIGN = 0xFD,
+	OTT_ERR_CRYPTO_VERAUTHSIGN = 0xFE,
+	OTT_ERR_CRYPTO_OWNERSHIP = 0xFF,
+	OTT_ERR_CRYPTO_BLACKE2B = 0x100,
+	OTT_ERR_CRYPTO_SIGN = 0x101
 };
 
-///OLD
-//enum {
-//	WAM_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
-//	WAM_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
-//	WAM_OFFSET_NIDX = 34,    // +32 (INDEX_SIZE)
-//	WAM_OFFSET_AUTH = 66,    // +64 (AUTH_SIZE)
-//	WAM_OFFSET_SIGN = 130,   // +64 (SIGN_SIZE)
-//	WAM_OFFSET_DATA = 194,
-//};
-
 enum {
-	WAM_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
-	WAM_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
-	WAM_OFFSET_SIGN = 34,    // +64 (SIGN_SIZE)
-	WAM_OFFSET_DATA = 98,
+	OTT_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
+	OTT_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
+	OTT_OFFSET_SIGN = 34,    // +64 (SIGN_SIZE)
+	OTT_OFFSET_DATA = 98,
 };
 
 
@@ -137,8 +113,8 @@ enum {
 /* --------------------------------------------------------------------- */
 /* -### CONST ###- */
 /* --------------------------------------------------------------------- */
-//#define WAM_PSK "AC88DFA4DEAAE33E0135DFF4A6BB678FA7FFDC10869ADC6E6D38DDCBC90CAC88"
-#define WAM_MAX_RETRY     (5)
+
+#define OTT_MAX_RETRY     (5)
 
 #define DEVNET00_HOSTNAME     "api.lb-0.h.chrysalis-devnet.iota.cafe\0"
 #define DEVNET00_PORT         (443)
@@ -177,13 +153,13 @@ typedef struct IOTA_index_t {
 	iota_keypair_t keys;        // keypair generated from berry
 } IOTA_Index;
 
-typedef struct WAM_Key_t {
+typedef struct OTT_Key_t {
 	uint8_t *data;
 	uint16_t data_len;
-} WAM_Key;
+} OTT_Key;
 
 
-typedef struct WAM_channel_t {
+typedef struct OTT_channel_t {
 	uint16_t id;
 	
 	IOTA_Endpoint* node;
@@ -199,7 +175,7 @@ typedef struct WAM_channel_t {
 
     uint8_t buff_hex_data[IOTA_MAX_MSG_SIZE];
     uint8_t buff_hex_index[INDEX_HEX_SIZE];
-} WAM_channel;
+} OTT_channel;
 
 
 #endif

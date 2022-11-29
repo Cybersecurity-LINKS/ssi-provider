@@ -1,8 +1,8 @@
-#include "WAM.h"
+#include "OTT.h"
 
-
-WAM_channel* wam_channel_alloc() {
-	return (WAM_channel*)calloc(1, sizeof(WAM_channel));
+/* 
+OTT_channel* wam_channel_alloc() {
+	return (OTT_channel*)calloc(1, sizeof(WAM_channel));
 }
 
 IOTA_Endpoint* wam_iota_ep_alloc() {
@@ -13,7 +13,7 @@ void wam_free(void* p) {
 	free(p);
 }
 
-/* Enpoint */
+  /// Enpoint 
 void wam_endpoint_set(IOTA_Endpoint* ep, unsigned int name_size, unsigned char* name, unsigned int port_no, bool secure) {
 	if (name_size > ENDPTNAME_SIZE)
 		name_size = ENDPTNAME_SIZE;
@@ -33,4 +33,4 @@ void wam_channel_set_read_idx(WAM_channel* channel, unsigned char* idx_bin_start
 	//set_channel_current_index(channel, idx_bin_start_read);
 }
 
-
+ */
