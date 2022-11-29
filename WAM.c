@@ -14,6 +14,11 @@ const uint8_t wam_tag[WAM_TAG_SIZE] = {
     0x41, 0xa4, 0x32, 0xba, 0xbe, 0x54, 0x83, 0xee, 0xab, 0x6b, 0x62, 0xce, 0xf0, 0x5c, 0x7, 0x91
 };
 
+const uint8_t wam_tag_revoked[WAM_TAG_SIZE] = {
+    0x41, 0xa4, 0x32, 0xba, 0xbe, 0x54, 0x83, 0xee, 0xab, 0x6b, 0x62, 0xce, 0xf0, 0x5c, 0x7, 0x91,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+};
+
 uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uint8_t* msg, uint16_t* msg_len, bool finalize);
 uint8_t sign_hash_do(uint8_t* data, size_t data_len, uint8_t* key, uint16_t key_len, uint8_t* signature, size_t sig_len);
 uint16_t get_messages_number(uint16_t len);
@@ -24,8 +29,8 @@ uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2);
 uint8_t send_wam_message(WAM_channel* ch, uint8_t* raw_data, uint16_t raw_data_size);
 uint8_t convert_wam_endpoint(IOTA_Endpoint* wam_ep, iota_client_conf_t *ep);
 uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg, uint16_t* msg_len);
-bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel);
-uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index);
+uint8_t is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel);
+uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, bool finalize);
 uint8_t get_msg_from_id(WAM_channel* channel, char* msg_id, res_message_t* response_info, uint8_t* msg_bin, uint16_t* msg_bin_len);
 uint8_t get_msg_id_list(WAM_channel* channel, res_find_msg_t* response_info, find_msg_t** list, uint32_t *list_len);
 uint8_t sign_hash_check(uint8_t* data, uint16_t data_len, uint8_t* recv_sign, uint8_t* recv_pubk);
@@ -138,7 +143,7 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg, uint16_t* msg_len) {
 	char **msg_id = NULL; // list pointer
 	res_message_t *response_msg = NULL;
-
+	uint8_t ret;
 	if((msg_id_list == NULL) || (channel == NULL) || (msg == NULL)) return(WAM_ERR_NULL);
 
 
@@ -148,9 +153,10 @@ uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg
 		//printf("msg id\n"); print_raw_hex(msg_id, msg_len);
 		response_msg = res_message_new();
 		if(get_msg_from_id(channel, *msg_id, response_msg, msg, msg_len) == WAM_OK) {
-			if(is_wam_valid_msg(msg, msg_len, channel)){
+			ret = is_wam_valid_msg(msg, msg_len, channel);
+			if(ret == WAM_OK || ret == OTT_REVOKE){
 				res_message_free(response_msg);
-				return(WAM_OK);
+				return(ret);
 			}
 		}
 		res_message_free(response_msg);
@@ -163,14 +169,15 @@ uint8_t find_wam_msg(find_msg_t* msg_id_list, WAM_channel* channel, uint8_t* msg
 
 
 // se i check vanno a buon fine, aggiorno msg e msg_len con solo i dati
-bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel) {
+uint8_t is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel) {
 	uint8_t tmp_data[WAM_MSG_PLAIN_SIZE];
 	uint8_t plaintext[WAM_MSG_PLAIN_SIZE];
 	uint8_t signature[SIGN_SIZE];
 	uint8_t pubk[PUBK_SIZE];
-	uint8_t err = 0;
 	size_t plain_len = 0, cipher_len = 0;
 	uint16_t data_len = 0;
+	uint8_t ret;
+	bool finalize = false;
 
 	if((msg == NULL) || (channel == NULL)) return(false);
 	if(*msg_len < WAM_MSG_HEADER_SIZE) return false;
@@ -185,21 +192,17 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel) {
 	plain_len = ((size_t) *msg_len) - WAM_TAG_SIZE;
 	//printf("MSg\n", msg); print_raw_hex(msg, msg_len);
 
-	if(memcmp(msg, wam_tag, WAM_TAG_SIZE) != 0) return false;
-	//memcpy(nonce, msg + WAM_TAG_SIZE, NONCE_SIZE);
+	if(memcmp(msg, wam_tag, WAM_TAG_SIZE) != 0) {
+		if (memcmp(msg, wam_tag_revoked, WAM_TAG_SIZE) != 0)
+			return false;
+		else
+			finalize = true;
+	}
+	
 	memcpy(plaintext, msg + WAM_TAG_SIZE, plain_len);
-
-	// decryption
-	//err |= crypto_secretbox_open_easy(plaintext, ciphertext, cipher_len, nonce, channel->PSK->data);
-	//if(err) {fprintf(stdout, "\n\n ERROR DECRYPT.\nKey is:\n"); print_raw_hex(channel->PSK->data, PSK_SIZE);}
-	//if(err) return(false);
-
-	 //print_raw_hex(plaintext, msg_len);
 	// unpack data
 	_GET16(plaintext, WAM_OFFSET_DLEN, data_len);
 	_GET256(plaintext, WAM_OFFSET_PUBK, pubk);
-	//_GET256(plaintext, WAM_OFFSET_NIDX, next_index);
-	//_GET512(plaintext, WAM_OFFSET_AUTH, AuthSign);
 	_GET512(plaintext, WAM_OFFSET_SIGN, signature);
 	memcpy(tmp_data, plaintext + WAM_OFFSET_DATA, data_len);
 
@@ -207,7 +210,7 @@ bool is_wam_valid_msg(uint8_t* msg, uint16_t* msg_len, WAM_channel* channel) {
 //fprintf(stdout, "RECV - NIDX:\n"); print_raw_hex(next_index, INDEX_SIZE);
 //fprintf(stdout, "RECV - AUTH:\n"); print_raw_hex(AuthSign, AUTH_SIZE);
 //fprintf(stdout, "RECV - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
-fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
+//fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 
 	// check signature (consider almost whole msg)
 	memcpy(tmp_data, plaintext, WAM_OFFSET_SIGN); // copy msg until authsign
@@ -217,31 +220,41 @@ fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
 	//if(ownership_check(pubk, channel->current_index.index) != WAM_OK) return(false);
 	//print_raw_hex(pubk, PUBK_SIZE);
 	//print_raw_hex(channel->read_idx, INDEX_SIZE);
-	if(ownership_check(pubk, channel->read_idx) != WAM_OK) return(false);
+	ret = ownership_check(pubk, channel->read_idx, finalize);
+	if(ret == OTT_REVOKE) return(OTT_REVOKE);
+	else if(ret != WAM_OK) return(WAM_ERR_RECV);
 
-	if(err != WAM_OK){ // redundant  
-		return(false);
-	} else {
-		memset(msg, 0, WAM_MSG_SIZE);   // clean msg
-		memcpy(msg, plaintext + WAM_OFFSET_DATA, data_len);   // copy only application data
-		*msg_len = data_len;   // set size of application data
-		//memcpy(next_idx, next_index, INDEX_SIZE);   // next_index
-		return(true);
-	}
-
+	memset(msg, 0, WAM_MSG_SIZE);   // clean msg
+	memcpy(msg, plaintext + WAM_OFFSET_DATA, data_len);   // copy only application data
+	*msg_len = data_len;   // set size of application data
+	return(WAM_OK);
 }
 
 
-uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index) {
+uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, bool finalize) {
+	iota_keypair_t keypair;
 	uint8_t hash[BLAKE2B_HASH_SIZE];
 	memset(hash, 0, BLAKE2B_HASH_SIZE);
 	//TODO REVOKE CONTROLLARE PRIV1 HASH
 	iota_blake2b_sum(pubk, PUBK_SIZE, hash, BLAKE2B_HASH_SIZE);   // h= b2b(recv_pubk)
-	print_raw_hex(hash, BLAKE2B_HASH_SIZE);
+	//print_raw_hex(hash, BLAKE2B_HASH_SIZE);
+	
+	if (finalize){
+		//hash(pub1)-> pub2 -> hash(pub2) = index
+		iota_crypto_keypair(hash, &keypair);
+		//printf("pub2");print_raw_hex(hash, BLAKE2B_HASH_SIZE);
+		iota_blake2b_sum(&(keypair.pub), PUBK_SIZE, hash, BLAKE2B_HASH_SIZE);
+		//print_raw_hex(hash, BLAKE2B_HASH_SIZE);
+		printf("QUI\n");
+	}
+	
 	if(memcmp(hash, current_index, INDEX_SIZE) != 0){
 		return(WAM_ERR_CRYPTO_OWNERSHIP);
 	}
-	return(WAM_OK);
+	if (finalize)
+		return(OTT_REVOKE);
+	else	
+		return(WAM_OK);
 }
 
 
@@ -376,7 +389,10 @@ uint8_t create_wam_msg(WAM_channel* channel, uint8_t* data, size_t data_len, uin
 	plain_len = data_len + WAM_MSG_HEADER_SIZE;
 
 	// build message
-	memcpy(msg, wam_tag, WAM_TAG_SIZE);
+	if (finalize)
+		memcpy(msg, wam_tag_revoked, WAM_TAG_SIZE);
+	else
+		memcpy(msg, wam_tag, WAM_TAG_SIZE);
 	memcpy(msg + WAM_TAG_SIZE, plaintext, plain_len);
 	*msg_len = plain_len + WAM_TAG_SIZE ;
 

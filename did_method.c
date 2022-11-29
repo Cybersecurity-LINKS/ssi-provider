@@ -347,9 +347,7 @@ int did_ott_resolve(did_document *didDocument, char *did) {
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
     uint8_t revoke[INDEX_SIZE];
-    const uint8_t wam_tag_revoked[WAM_TAG_SIZE] = {
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
     memset(revoke,0, INDEX_SIZE);
 
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
@@ -371,7 +369,9 @@ int did_ott_resolve(did_document *didDocument, char *did) {
         return DID_RESOLVE_ERROR;
 
     set_channel_index_read(&ch_read, index);
-    if((ret = WAM_read(&ch_read, tmp_buff, &expected_size)) == WAM_OK){
+    ret = WAM_read(&ch_read, tmp_buff, &expected_size);
+    printf("ret %d\n", ret);
+    if(ret == WAM_OK){
     //while((ret = WAM_read(&ch_read, tmp_buff, &expected_size)) == WAM_OK){
        // printf("%s\n",ch_read.next_index.index);
       //  printf("%s\n",revoke);
@@ -604,9 +604,7 @@ int did_ott_revoke(char * did){
     uint16_t expected_size=DATA_SIZE;
     uint8_t ret=0;
     uint8_t revoke_index[INDEX_SIZE];
-    const uint8_t wam_tag_revoked[WAM_TAG_SIZE] = {
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
     memset(revoke_index,0,INDEX_SIZE);
     //uint8_t nxt_idx[INDEX_HEX_SIZE];
 
@@ -618,7 +616,7 @@ int did_ott_revoke(char * did){
 
     load_channel(&ch_send, &testnet0tls);
 
-    ret = WAM_write(&ch_send, wam_tag_revoked, WAM_TAG_SIZE, true);
+    ret = WAM_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
     if(ret != WAM_OK){
         goto fail;
     }
@@ -675,7 +673,7 @@ int main() {
     //RESOLVE
     printf("%s\n", my_did_str);
     //getc(stdin);
-    ret = did_ott_resolve(didDocument, my_did_str);
+/*     ret = did_ott_resolve(didDocument, my_did_str);
     if(ret == DID_RESOLVE_REVOKED){
         printf("Did Document Revoked\n");
         ret = 0;
@@ -697,7 +695,7 @@ int main() {
         ret = 0;
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
-    }
+    } */
     ret = did_ott_revoke(my_did_str);
     if(ret != DID_REVOKE_OK){
         printf("Revoke failed");
