@@ -12,7 +12,7 @@ CFLAGS  +=\
 LDFLAGS= -shared -lssl -lcrypto -lsodium -ldl -lm -lcurl -liota_crypto -liota_core -liota_client -lcurl -lsodium \
 
 TARGET  = libdidprovider.so
-SOURCES = didprovider.c didprovider.h CRUD.c did_method.c did_method.h WAM_def.h WAM.c wam-wrapper.c cJSON.c cJSON.h 
+SOURCES = didprovider.c didprovider.h CRUD.c did_method.c did_method.h OTT_def.h OTT.c ott-wrapper.c cJSON.c cJSON.h 
 OBJECTS = $(SOURCES:.c=.o)
 
 
@@ -22,7 +22,7 @@ $(TARGET): $(OBJECTS)
 	$(CC)  $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 clean:
-	rm -f didprovider.o did_method.o wam-wrapper.o CRUD.o WAM.o
+	rm -f didprovider.o did_method.o ott-wrapper.o CRUD.o OTT.o
 
 install:
 	

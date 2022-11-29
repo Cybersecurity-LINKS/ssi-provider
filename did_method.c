@@ -237,7 +237,6 @@ int save_channel(OTT_channel *ch){
 
 int load_channel(OTT_channel *ch, IOTA_Endpoint* endpoint){
     FILE *fp = NULL;
-    uint16_t sz;
     // open the file in write binary mode
     fp = fopen("channel.txt", "rb");
     if(fp == NULL) {
@@ -534,7 +533,7 @@ int did_ott_update(method *methods,char * did) {
     char newdid[DID_LEN] = "";
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
-    char next_index_hex[INDEX_HEX_SIZE];
+   // char next_index_hex[INDEX_HEX_SIZE];
     uint8_t *index_bin;
     char index_hex[INDEX_HEX_SIZE];
     OTT_channel ch_send;
@@ -671,7 +670,7 @@ int main() {
         printf("Did Document OK\n");
     }
 
-/*     ret = did_ott_update(m2,my_did_str);
+    ret = did_ott_update(m2,my_did_str);
 
     if(ret != DID_UPDATE_OK){
         printf("Update failed");
@@ -684,7 +683,7 @@ int main() {
         ret = 0;
     } else if( ret == DID_RESOLVE_OK){
         printf("Did Document OK\n");
-    } */
+    }
     ret = did_ott_revoke(my_did_str);
     if(ret != DID_REVOKE_OK){
         printf("Revoke failed");
