@@ -342,7 +342,6 @@ int did_ott_resolve(did_document *didDocument, char *did) {
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
     WAM_channel ch_read;
-    uint8_t tmp_buff[DATA_SIZE];
     uint8_t read_buff[DATA_SIZE];
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
@@ -369,20 +368,11 @@ int did_ott_resolve(did_document *didDocument, char *did) {
         return DID_RESOLVE_ERROR;
 
     set_channel_index_read(&ch_read, index);
-    ret = WAM_read(&ch_read, tmp_buff, &expected_size);
-    printf("ret %d\n", ret);
-    if(ret == WAM_OK){
-    //while((ret = WAM_read(&ch_read, tmp_buff, &expected_size)) == WAM_OK){
-       // printf("%s\n",ch_read.next_index.index);
-      //  printf("%s\n",revoke);
-   //     if(memcmp(ch_read.current_index.index, revoke, INDEX_SIZE) == 0){
-      //      return DID_RESOLVE_REVOKED;
-     //   }
-  //   printf("DSADSDS\n");
-        memcpy(read_buff, tmp_buff, DATA_SIZE);
-        memset(tmp_buff, 0, DATA_SIZE);
-    }
-    else
+    ret = WAM_read(&ch_read, read_buff, &expected_size);
+    
+    if(ret == OTT_REVOKE)
+        return DID_RESOLVE_REVOKED;
+    else if(ret != WAM_OK)
         return DID_RESOLVE_NOT_FOUND;
 
     fprintf(stdout, "WAM_read ret:");
@@ -672,8 +662,7 @@ int main() {
     }
     //RESOLVE
     printf("%s\n", my_did_str);
-    //getc(stdin);
-/*     ret = did_ott_resolve(didDocument, my_did_str);
+    ret = did_ott_resolve(didDocument, my_did_str);
     if(ret == DID_RESOLVE_REVOKED){
         printf("Did Document Revoked\n");
         ret = 0;
@@ -682,7 +671,7 @@ int main() {
         printf("Did Document OK\n");
     }
 
-    ret = did_ott_update(m2,my_did_str);
+/*     ret = did_ott_update(m2,my_did_str);
 
     if(ret != DID_UPDATE_OK){
         printf("Update failed");

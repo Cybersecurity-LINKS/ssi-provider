@@ -93,9 +93,11 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 	if((channel == NULL) || (outData == NULL)) return WAM_ERR_NULL;
 
 	messages = get_messages_number(expected_size);
+	printf("messages %d\n", messages);
 	for(i = 0; i < messages; i++) {
 		response = res_find_msg_new();
 		// leggi lista msg_id at channel->read_index  <= response, count, LISTA
+		printf("for messaggi1\n");
 		if((ret = get_msg_id_list(channel, response, &msg_id_list, &msg_id_list_len)) != WAM_OK) {
 			break;
 		}
@@ -103,7 +105,13 @@ uint8_t WAM_read(WAM_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 		// trova il msg_wam nella lista  <= MSG
 		// se trovato => update: buffer with msg, offset, next index, channel counters
 		// se non trovato => ritorna err (unexpected_end, notfound)
-		if((ret = find_wam_msg(msg_id_list, channel, msg_to_read, &msg_len)) == WAM_OK){
+		ret = find_wam_msg(msg_id_list, channel, msg_to_read, &msg_len);
+		printf("for messaggi2\n");
+		if (ret == OTT_REVOKE){
+			res_find_msg_free(response);
+			return(OTT_REVOKE);
+		}
+		if(ret == WAM_OK){
 			if(s + msg_len > expected_size) {
 				// does not fit
 				memcpy(outData + s, msg_to_read, (*outDataSize - s));  // copy only what fits
