@@ -50,5 +50,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-did_method
-OTT.c
+did_method.o
+mydid
+channel.txt
