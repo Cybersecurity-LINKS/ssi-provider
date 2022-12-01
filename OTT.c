@@ -83,65 +83,52 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 	uint16_t i = 0, messages = 0, expected_size = *outDataSize;
 	find_msg_t* msg_id_list = NULL; uint32_t msg_id_list_len = 0;
 	size_t s = 0; //, recv_data = 0;
+	char **msg_id = NULL; // list pointer
 	//uint8_t* d = outData;
 	res_find_msg_t* response;
+	res_message_t *response_msg = NULL;
     uint8_t ret = 0;
 
 	if((channel == NULL) || (outData == NULL)) return OTT_ERR_NULL;
 
-	//messages = get_messages_number(expected_size);
-	//printf("messages %d\n", messages);
 	response = res_find_msg_new();
 	if((ret = get_msg_id_list(channel, response, &msg_id_list, &msg_id_list_len)) != OTT_OK) {
 		return OTT_NOT_FOUND;
 	}	
-	printf("list len %d\n",msg_id_list_len);
 
 	for(i = 0; i < msg_id_list_len; i++) {
-		
+		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
 		// leggi lista msg_id at channel->read_index  <= response, count, LISTA
-		
-
-		// trova il msg_ott nella lista  <= MSG
-		// se trovato => update: buffer with msg, offset, next index, channel counters
-		// se non trovato => ritorna err (unexpected_end, notfound)
-		ret = find_ott_msg(msg_id_list, channel, msg_to_read, &msg_len);
-		printf("for messaggi2 ret =%d\n", ret);
-		if (ret == OTT_REVOKE){
-			res_find_msg_free(response);
-			return(OTT_REVOKE);
+		response_msg = res_message_new();
+		if(get_msg_from_id(channel, *msg_id, response_msg, msg_to_read, &msg_len) == OTT_OK) {
+			ret = is_ott_valid_msg(msg_to_read, &msg_len, channel);
+			if(ret == OTT_REVOKE){
+				res_message_free(response_msg);
+				return(ret);
+			}
 		}
-		if(ret == OTT_OK){
-			if(s + msg_len > expected_size) {
-				printf("QUIIIII\n");
-				// does not fit
-				memcpy(outData + s, msg_to_read, (*outDataSize - s));  // copy only what fits
-				channel->recv_msg++;
-				channel->recv_bytes += (*outDataSize - s);
-				res_find_msg_free(response);
-				return(OTT_BUFF_FULL);   // no need to continue
-			} else {
-				printf("QUI222\n");
-				memcpy(outData + s, msg_to_read, msg_len);   // update buffer with msg
-				s += msg_len;   // update offset
-				
-			}			
-			//DA CONTROLLARE
-			channel->recv_msg++;   // update counter msg
-			channel->recv_bytes += msg_len;   // update counter bytes
-
-		} else {
-			printf("QUI33333\n");
-            if(i > 0){
-                ret = OTT_BROKEN_MESSAGE;
-            }
-            res_find_msg_free(response);
-            break;
-        }
-		//res_find_msg_free(response);
-		//printf("QUI2221\n");
+		else{
+			res_message_free(response_msg);
+			return OTT_NOT_FOUND;
+		}
 	}
-
+	// trova il msg_ott nella lista  <= MSG
+	// se trovato => update: buffer with msg, offset, next index, channel counters
+	// se non trovato => ritorna err (unexpected_end, notfound)
+	if(s + msg_len > expected_size) {
+		// does not fit
+		memcpy(outData + s, msg_to_read, (*outDataSize - s));  // copy only what fits
+		channel->recv_msg++;
+		channel->recv_bytes += (*outDataSize - s);
+		res_find_msg_free(response);
+		return(OTT_BUFF_FULL);   // no need to continue
+	} else {
+		memcpy(outData + s, msg_to_read, msg_len);   // update buffer with msg
+		s += msg_len;   // update offset	
+	}			
+	//DA CONTROLLARE
+	channel->recv_msg++;   // update counter msg
+	channel->recv_bytes += msg_len;   // update counter bytes
     return ret;
 }
 
@@ -208,7 +195,7 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 
 
 
-uint8_t find_ott_msg(find_msg_t* msg_id_list, OTT_channel* channel, uint8_t* msg, uint16_t* msg_len) {
+/* uint8_t find_ott_msg(find_msg_t* msg_id_list, OTT_channel* channel, uint8_t* msg, uint16_t* msg_len) {
 	char **msg_id = NULL; // list pointer
 	res_message_t *response_msg = NULL;
 	uint8_t ret;
@@ -235,7 +222,7 @@ uint8_t find_ott_msg(find_msg_t* msg_id_list, OTT_channel* channel, uint8_t* msg
 	}
 
 	return(OTT_NOT_FOUND);
-}
+} */
 
 
 // se i check vanno a buon fine, aggiorno msg e msg_len con solo i dati
@@ -248,10 +235,9 @@ uint8_t is_ott_valid_msg(uint8_t* msg, uint16_t* msg_len, OTT_channel* channel) 
 	uint16_t data_len = 0;
 	uint8_t ret;
 	bool finalize = false;
-
 	if((msg == NULL) || (channel == NULL)) return(false);
 	if(*msg_len < OTT_MSG_HEADER_SIZE) return false;
-
+	;
 	// init
 	memset(tmp_data, 0, OTT_MSG_PLAIN_SIZE);
 	memset(plaintext, 0, OTT_MSG_PLAIN_SIZE);
@@ -315,7 +301,6 @@ uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, bool finalize) {
 		//printf("pub2");print_raw_hex(hash, BLAKE2B_HASH_SIZE);
 		iota_blake2b_sum(keypair.pub, PUBK_SIZE, hash, BLAKE2B_HASH_SIZE);
 		//print_raw_hex(hash, BLAKE2B_HASH_SIZE);
-		printf("QUI\n");
 	}
 	
 	if(memcmp(hash, current_index, INDEX_SIZE) != 0){
