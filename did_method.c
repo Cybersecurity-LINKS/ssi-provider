@@ -529,23 +529,31 @@ int did_ott_resolve(did_document *didDocument, char *did) {
 }
 
 int did_ott_update(method *methods,char * did) {
-    //FILE *my_did = NULL;
     char newdid[DID_LEN] = "";
-    char hex_index[INDEX_HEX_SIZE];
-    uint8_t index[INDEX_SIZE];
-   // char next_index_hex[INDEX_HEX_SIZE];
     uint8_t *index_bin;
     char index_hex[INDEX_HEX_SIZE];
+    OTT_channel ch_rev;
     OTT_channel ch_send;
     int ret=0;
-
+    uint8_t write_buff[REVOKE_MSG_SIZE];
     fprintf(stdout, "UPDATE\n");
 
-     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
+    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
             .port = 443,
             .tls = true};
 
-    load_channel(&ch_send, &testnet0tls);
+    load_channel(&ch_rev, &testnet0tls);
+    memset(write_buff, 0, REVOKE_MSG_SIZE);
+    ret = OTT_write(&ch_rev, write_buff, REVOKE_MSG_SIZE, true);
+    if(ret != OTT_OK){
+        goto fail;
+    }
+
+
+    ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
+    if(ret != OTT_OK){
+        goto fail;
+    }
 
     index_bin = ch_send.second_index.index; 
     ret = bin_2_hex(index_bin, INDEX_SIZE, index_hex, INDEX_HEX_SIZE);
@@ -585,19 +593,13 @@ int did_ott_update(method *methods,char * did) {
 
 int did_ott_revoke(char * did){
     char hex_index[INDEX_HEX_SIZE];
-    uint8_t index[INDEX_SIZE];
     OTT_channel ch_send;
-
     uint8_t write_buff[REVOKE_MSG_SIZE];
-    uint8_t tmp_buff[DATA_SIZE];
-    uint16_t expected_size=DATA_SIZE;
     uint8_t ret=0;
     uint8_t revoke_index[INDEX_SIZE];
-
-    memset(revoke_index,0,INDEX_SIZE);
-    //uint8_t nxt_idx[INDEX_HEX_SIZE];
-
     fprintf(stdout, "REVOKE\n");
+    
+    memset(revoke_index,0,INDEX_SIZE);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
             .port = 443,

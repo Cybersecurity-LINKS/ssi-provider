@@ -80,7 +80,7 @@ uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint* 
 
 uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) {
 	uint8_t msg_to_read[OTT_MSG_SIZE]; uint16_t msg_len = 0;
-	uint16_t i = 0, messages = 0, expected_size = *outDataSize;
+	uint16_t i = 0, expected_size = *outDataSize;
 	find_msg_t* msg_id_list = NULL; uint32_t msg_id_list_len = 0;
 	size_t s = 0; //, recv_data = 0;
 	char **msg_id = NULL; // list pointer
