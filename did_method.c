@@ -1,5 +1,6 @@
 #include "did_method.h"
-
+#include <time.h>
+#include <sys/time.h>
 #define KEY \
 "-----BEGIN PUBLIC KEY-----\nMIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDC8pta2RewzPpJ1I/Ir\nxycs1p+gxqVqV32mybVQ011WrUfc4J4ubnRFFfjnlMmXAIWhZANiAAS4PSfpIErh\nA22hFrBh30xz8Tcc2xw0zB7VTVZhIR/YmoenTnOJnLTMGP8LGXWJNz1e7ffq7KR7\nMMDhtk4Wc1I4NGgXuYx54TNt8g15Bn6WJbHt4TZMfeTlod/INe2QgOg=" \
 "-----END PUBLIC KEY-----\n"
@@ -13,6 +14,44 @@
 
 #define KEY4 \
 "KEY 4"
+
+enum { NS_PER_SECOND = 1000000000 };
+
+
+
+void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td)
+
+{
+
+    td->tv_nsec = t2.tv_nsec - t1.tv_nsec;
+
+    td->tv_sec  = t2.tv_sec - t1.tv_sec;
+
+    if (td->tv_sec > 0 && td->tv_nsec < 0)
+
+    {
+
+        td->tv_nsec += NS_PER_SECOND;
+
+        td->tv_sec--;
+
+    }
+
+    else if (td->tv_sec < 0 && td->tv_nsec > 0)
+
+    {
+
+        td->tv_nsec -= NS_PER_SECOND;
+
+        td->tv_sec++;
+
+    }
+
+}
+
+
+
+
 void did_document_init(did_document *did_doc) {
     memset(did_doc, 0, sizeof(did_document));
 }
@@ -384,6 +423,11 @@ int did_ott_resolve(did_document *didDocument, char *did) {
     fprintf(stdout, "\n\nReceived DID Document: \n");
     fprintf(stdout, "%s\n", read_buff);
 
+    uint32_t start_u,end_u;
+    struct timespec start, finish, delta;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    
     //parsing
     cJSON *did_document_json = cJSON_Parse((const char *) read_buff);
     if (did_document_json == NULL) {
@@ -525,6 +569,13 @@ int did_ott_resolve(did_document *didDocument, char *did) {
     }
 
     cJSON_Delete(did_document_json);
+
+// ... operazione da misurare
+
+    clock_gettime(CLOCK_REALTIME, &finish);
+    sub_timespec(start, finish, &delta);
+    printf("key gen time: %d.%.9ld\n", (int) delta.tv_sec, delta.tv_nsec);
+
     return DID_RESOLVE_OK;
 }
 
