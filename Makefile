@@ -1,37 +1,36 @@
-CC = gcc
-CFLAGS = -Wall -g
-
-SOURCE_1 = did_method.c
-SOURCE_2 = OTT.c 
-SOURCE_3 = ott-wrapper.c
-
-
-#LDFLAGS+=\
+CC      = gcc
+CFLAGS  +=\
 -I/home/ale/iota.c/build/include/ \
 -I/home/ale/iota.c/build/include/cjson/ \
 -I/home/ale/iota.c/build/include/client/ \
 -I/home/ale/iota.c/build/include/crypto/ \
 -I/home/ale/iota.c/build/include/core/ \
+-I/home/ale/iota.c/build/include/client/api/v1/\
+-L/home/ale/iota.c/build/lib/\
+-Wall -fPIC -g \
 
-LDFLAGS+=\
--I/home/ale/Scaricati/iota.c-dev/build2/include/ \
--I/home/ale/Scaricati/iota.c-dev/build2/include/cjson/ \
--I/home/ale/Scaricati/iota.c-dev/build2/include/client/ \
--I/home/ale/Scaricati/iota.c-dev/build2/include/client/api/v1/ \
--I/home/ale/Scaricati/iota.c-dev/build2/include/crypto/ \
--I/home/ale/Scaricati/iota.c-dev/build2/include/core/ \
--L/home/ale/Scaricati/iota.c-dev/build2/lib/\
 
-LDFLAGS += \
--L/home/ale/iota.c/build/lib/ \
--liota_crypto -lcrypto -liota_core -liota_client -lcjson -lcurl -lsodium
+LDFLAGS= -shared -lssl -lcrypto -lsodium -ldl -lm -lcurl -liota_crypto -liota_core -liota_client -lcurl -lsodium \
 
-APP = did_method
+TARGET  = libdidprovider.so
+SOURCES = didprovider.c didprovider.h CRUD.c did_method.c did_method.h OTT_def.h OTT.c ott-wrapper.c cJSON.c cJSON.h 
+OBJECTS = $(SOURCES:.c=.o)
 
-.PHONY: all
-all:
-	$(CC) $(CFLAGS) $(SOURCE_1) $(SOURCE_2) $(SOURCE_3) -o $(APP) $(LDFLAGS)
 
-.PHONY: clean
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CC)  $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
 clean:
-	rm -f $(APP) *.o
+	rm -f didprovider.o did_method.o ott-wrapper.o CRUD.o OTT.o cJSON.o
+
+install:
+	
+	sudo mv libdidprovider.so /usr/local/lib64/ossl-modules/didprovider.so
+
+uninstall:
+	sudo rm -f /usr/local/lib64/ossl-modules/didprovider.so
+
+tests:
+	chmod -R 777 ./test

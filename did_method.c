@@ -1,56 +1,6 @@
 #include "did_method.h"
 #include <time.h>
 #include <sys/time.h>
-#define KEY \
-"-----BEGIN PUBLIC KEY-----\nMIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDC8pta2RewzPpJ1I/Ir\nxycs1p+gxqVqV32mybVQ011WrUfc4J4ubnRFFfjnlMmXAIWhZANiAAS4PSfpIErh\nA22hFrBh30xz8Tcc2xw0zB7VTVZhIR/YmoenTnOJnLTMGP8LGXWJNz1e7ffq7KR7\nMMDhtk4Wc1I4NGgXuYx54TNt8g15Bn6WJbHt4TZMfeTlod/INe2QgOg=" \
-"-----END PUBLIC KEY-----\n"
-
-#define KEY2 \
-"PUBLIC KEY 2"
-
-#define KEY3 \
-"KEY 3"
-
-
-#define KEY4 \
-"KEY 4"
-
-enum { NS_PER_SECOND = 1000000000 };
-
-
-
-void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td)
-
-{
-
-    td->tv_nsec = t2.tv_nsec - t1.tv_nsec;
-
-    td->tv_sec  = t2.tv_sec - t1.tv_sec;
-
-    if (td->tv_sec > 0 && td->tv_nsec < 0)
-
-    {
-
-        td->tv_nsec += NS_PER_SECOND;
-
-        td->tv_sec--;
-
-    }
-
-    else if (td->tv_sec < 0 && td->tv_nsec > 0)
-
-    {
-
-        td->tv_nsec -= NS_PER_SECOND;
-
-        td->tv_sec++;
-
-    }
-
-}
-
-
-
 
 void did_document_init(did_document *did_doc) {
     memset(did_doc, 0, sizeof(did_document));
@@ -323,9 +273,12 @@ int did_ott_create(method *methods, char* did_new) {
     OTT_channel ch_send;
 
     fprintf(stdout, "CREATE\n");
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-            .port = 443,
-            .tls = true};
+/*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
+            .port = MAINNET00_PORT,
+            .tls = true}; */
+    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+            .port = 14265,
+            .tls = false};
 
     
     ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
@@ -387,9 +340,14 @@ int did_ott_resolve(did_document *didDocument, char *did) {
 
     memset(revoke,0, INDEX_SIZE);
 
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-            .port = 443,
-            .tls = true};
+/*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
+            .port = MAINNET00_PORT,
+            .tls = true}; */
+    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+            .port = 14265,
+            .tls = false};
+
+
     fprintf(stdout, "RESOLVE\n");
 
     ret = OTT_read_init_channel(&ch_read, 1, &testnet0tls);
@@ -570,11 +528,6 @@ int did_ott_resolve(did_document *didDocument, char *did) {
 
     cJSON_Delete(did_document_json);
 
-// ... operazione da misurare
-
-    clock_gettime(CLOCK_REALTIME, &finish);
-    sub_timespec(start, finish, &delta);
-    printf("key gen time: %d.%.9ld\n", (int) delta.tv_sec, delta.tv_nsec);
 
     return DID_RESOLVE_OK;
 }
@@ -589,9 +542,12 @@ int did_ott_update(method *methods,char * did) {
     uint8_t write_buff[REVOKE_MSG_SIZE];
     fprintf(stdout, "UPDATE\n");
 
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-            .port = 443,
-            .tls = true};
+/*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
+            .port = MAINNET00_PORT,
+            .tls = true}; */
+    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+            .port = 14265,
+            .tls = false};
 
     load_channel(&ch_rev, &testnet0tls);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
@@ -652,9 +608,14 @@ int did_ott_revoke(char * did){
     
     memset(revoke_index,0,INDEX_SIZE);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-            .port = 443,
-            .tls = true};
+
+/*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
+            .port = MAINNET00_PORT,
+            .tls = true}; */
+
+    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+            .port = 14265,
+            .tls = false};
 
     load_channel(&ch_send, &testnet0tls);
 
@@ -672,7 +633,7 @@ fail:
 }
 
 
-#define SIZE 2
+/* #define SIZE 2
 #define SIZE2 2
 
 int main() {
@@ -841,5 +802,5 @@ int main() {
    // did_document_free(didDocument);
    // free(didDocument);
    // return ( ret );
-}
+//}
 //*/
