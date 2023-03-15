@@ -42,7 +42,7 @@ typedef struct method {
     ott_buf controller;
     ott_buf pk_pem;
     int method_type;
-    struct method *next;
+    //struct method *next;
 } method;
 
 typedef struct context {
@@ -61,9 +61,9 @@ typedef struct did_document {
 
 typedef enum {
     //da inserirne anche altre se servono
-    Ed25519VerificationKey2018,             // 0
-    RsaVerificationKey2018,                 // 1
-    EcdsaSecp256k1VerificationKey2019,      // 2
+    RsaVerificationKey2023,             //0
+    Ed25519VerificationKey2023,         //1
+    EcdsaSecp256r1VerificationKey2023,  //2
 } KEY_TYPES;
 
 typedef enum {
