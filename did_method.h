@@ -62,8 +62,8 @@ typedef struct did_document {
 typedef enum {
     //da inserirne anche altre se servono
     RsaVerificationKey2023,             //0
-    Ed25519VerificationKey2023,         //1
-    EcdsaSecp256r1VerificationKey2023,  //2
+    EcdsaSecp256r1VerificationKey2023,  //1
+    Ed25519VerificationKey2023,         //2
 } KEY_TYPES;
 
 typedef enum {

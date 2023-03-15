@@ -1,15 +1,17 @@
+OPENSSL_DIR=/home/pirug/openssl
+IOTA_DIR=/home/pirug/Desktop/iota.c
+
 CC      = gcc
 CFLAGS  +=\
--I /home/pirug/openssl/include/ \
--I iota.c/build/include/ \
--I iota.c/build/include/cjson/ \
--I iota.c/build/include/client/ \
--I iota.c/build/include/crypto/ \
--I iota.c/build/include/core/ \
--I iota.c/build/include/client/api/v1/\
--L iota.c/build/lib/\
+-I $(OPENSSL_DIR)/include/ \
+-I $(IOTA_DIR)/build/include/ \
+-I $(IOTA_DIR)/build/include/cjson/ \
+-I $(IOTA_DIR)/build/include/client/ \
+-I $(IOTA_DIR)/build/include/crypto/ \
+-I $(IOTA_DIR)/build/include/core/ \
+-I $(IOTA_DIR)/build/include/client/api/v1/\
+-L $(IOTA_DIR)/build/lib/\
 -Wall -fPIC -g \
-
 
 LDFLAGS= -shared -ldl -lm -liota_crypto -liota_core -liota_client -lcurl -lsodium\
 
@@ -28,10 +30,10 @@ clean:
 
 install:
 	
-	mv libdidprovider.so /home/pirug/openssl/lib64/ossl-modules/didprovider.so
+	cp libdidprovider.so $(OPENSSL_DIR)/lib64/ossl-modules/didprovider.so
 
 uninstall:
-	rm -f /home/pirug/openssl/lib64/ossl-modules/didprovider.so
+	rm -f $(OPENSSL_DIR)/lib64/ossl-modules/didprovider.so
 
 tests:
 	chmod -R 777 ./test

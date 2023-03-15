@@ -57,4 +57,9 @@ channel.txt
 # IDE directories
 .idea/
 .vscode/
+
+# demo folder
 demo/.idea/
+demo/*.txt
+demo/demo
+demo/*.pem

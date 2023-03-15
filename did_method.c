@@ -40,12 +40,12 @@ char *key_types_to_string(KEY_TYPES type)
 {
     switch (type)
     {
-    case Ed25519VerificationKey2018:
-        return "Ed25519VerificationKey2018";
-    case RsaVerificationKey2018:
-        return "RsaVerificationKey2018";
-    case EcdsaSecp256k1VerificationKey2019:
-        return "EcdsaSecp256k1VerificationKey2019";
+    case RsaVerificationKey2023:
+        return "RsaVerificationKey2023";
+    case EcdsaSecp256r1VerificationKey2023:
+        return "EcdsaSecp256r1VerificationKey2023";
+    case Ed25519VerificationKey2023:
+        return "Ed25519VerificationKey2023";
     default:
         return NULL;
     }
@@ -58,24 +58,24 @@ int find_key_type(char *key_type)
     {
         switch (type)
         {
-        case Ed25519VerificationKey2018:
-            if (strcmp(key_type, key_types_to_string(Ed25519VerificationKey2018)) == 0)
+        case RsaVerificationKey2023:
+            if (strcmp(key_type, key_types_to_string(RsaVerificationKey2023)) == 0)
             {
-                return Ed25519VerificationKey2018;
+                return RsaVerificationKey2023;
             }
             type++;
             break;
-        case RsaVerificationKey2018:
-            if (strcmp(key_type, key_types_to_string(RsaVerificationKey2018)) == 0)
+        case EcdsaSecp256r1VerificationKey2023:
+            if (strcmp(key_type, key_types_to_string(EcdsaSecp256r1VerificationKey2023)) == 0)
             {
-                return RsaVerificationKey2018;
+                return EcdsaSecp256r1VerificationKey2023;
             }
             type++;
             break;
-        case EcdsaSecp256k1VerificationKey2019:
-            if (strcmp(key_type, key_types_to_string(EcdsaSecp256k1VerificationKey2019)) == 0)
+        case Ed25519VerificationKey2023:
+            if (strcmp(key_type, key_types_to_string(Ed25519VerificationKey2023)) == 0)
             {
-                return EcdsaSecp256k1VerificationKey2019;
+                return Ed25519VerificationKey2023;
             }
             type++;
             break;
@@ -150,13 +150,13 @@ char *create_did_document(char *did, ott_buf *Abuff, int Atype, ott_buf *Sbuff, 
     case Ed25519VerificationKey2023:
         cJSON_AddStringToObject(method, "type", "Ed25519VerificationKey2023");
         break;
-    case default:
+    default:
         printf("Unrecognised key type\n");
         goto fail;
     }
 
     cJSON_AddStringToObject(method, "controller", did);
-    cJSON_AddStringToObject(method, "publicKeyMultibase", (const char *)Abuff->p);
+    cJSON_AddStringToObject(method, "publicKeyPem", (const char *)Abuff->p);
     cJSON_AddItemToObject(did_document, "authenticationMethod", method);
 
     if (Sbuff != NULL)
