@@ -53,3 +53,7 @@ dkms.conf
 did_method.o
 mydid
 channel.txt
+
+# IDE directories
+.idea/
+.vscode/
