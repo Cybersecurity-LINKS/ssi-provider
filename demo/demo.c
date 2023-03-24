@@ -206,6 +206,7 @@ int main(void) {
     FILE *fp_resolve = NULL;
     FILE *fp_update = NULL;
     FILE *fp_revoke = NULL;
+    FILE *fp_did = NULL;
     DID_CTX *didctx = NULL;
     OSSL_LIB_CTX *libctx = NULL;
 
@@ -277,6 +278,10 @@ int main(void) {
         goto error;
     }
 
+    if ((fp_did = fopen("did.txt", "w")) == NULL) {
+        goto error;
+    }
+
     char *new_did = DID_create(didctx, did_doc);
 
     if (new_did == NULL) {
@@ -285,6 +290,7 @@ int main(void) {
     }
 
     printf("DID %s\n", new_did);
+    fprintf(fp_did, "%s\n", new_did);
 
     ret = DID_resolve(didctx, new_did, did_doc_rcv);
 
@@ -313,6 +319,7 @@ int main(void) {
     fclose(fp_resolve);
     fclose(fp_update);
     fclose(fp_revoke);
+    fclose(fp_did);
     DID_DOCUMENT_free(did_doc);
     DID_DOCUMENT_free(did_doc_rcv);
     DID_DOCUMENT_free(did_doc_update);
