@@ -25,7 +25,7 @@ At line 19 replace `--disable-shared` with `cxxflags=-fPIC`
 
 ## Build & Install
 
-    cd didprovider
+    cd path/to/didprovider
     nano Makefile
 
 Edit the first two lines specifying the right paths `OPENSSL_DIR=/path/to/openssl` and `IOTA_DIR=/path/to/iota.c`
