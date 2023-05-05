@@ -15,6 +15,12 @@ static const OSSL_ALGORITHM didprovider_did[] = {
     { NULL, NULL, NULL }
 };
 
+extern const OSSL_DISPATCH ssiprovider_vc_functions[];
+static const OSSL_ALGORITHM ssiprovider_vc[] = {
+    {"VC","provider=ssiprovider", ssiprovider_vc_functions},
+    {NULL, NULL, NULL}
+}
+
 static const OSSL_PARAM * didprovider_gettable_params(void *provctx)
 {
     static const OSSL_PARAM param_types[] = {
@@ -52,6 +58,8 @@ static const OSSL_ALGORITHM* didprovider_query_operation(void* provCtx, int id,i
     switch (id) {
         case OSSL_OP_DID:
             return didprovider_did;
+        case OSSL_OP_VC:
+            return ssiprovider_vc;
         break;
 
     }
