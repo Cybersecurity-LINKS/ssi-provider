@@ -20,7 +20,7 @@ typedef struct proof {
     vc_buf created;
     vc_buf purpose;
     vc_buf verificationMethod;
-    vc_buf signature;
+    vc_buf value;
 } proof;
 
 typedef struct verifiable_credential {
@@ -31,7 +31,7 @@ typedef struct verifiable_credential {
     vc_buf issuanceDate;
     c_subj credentialSubject; 
     proof proof;
-} verifiable_credential;
+} VC_CTX;
 
 typedef enum {
     //da inserirne anche altre se servono
@@ -40,12 +40,14 @@ typedef enum {
     Ed25519VerificationKey2023,         //2
 } KEY_TYPES;
 
-void vc_init(verifiable_credential *vc);
-
-void vc_free(verifiable_credential *vc);
+int get_key_type(EVP_PKEY *key);
 
 int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char* sig);
 
-int vc_cjson_parse(verifiable_credential *vc, unsigned char *vc_stream);
+int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream);
 
-int vc_cjson_print(verifiable_credential *vc, unsigned char *vc_stream);
+int vc_cjson_print(VC_CTX *vc, unsigned char *vc_stream);
+
+int vc_fill_metadata_claim(cJSON *vc, char *context, char *id, char *type, char *issuer, char *issuance_date, char *subject);
+
+int vc_fill_proof(cJSON *vc, EVP_PKEY *pkey, char *type, char *created, char *verification_method, char *purpose, char *value);
