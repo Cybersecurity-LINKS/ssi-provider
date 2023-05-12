@@ -5,6 +5,7 @@
 
 #define VC_PARSE_OK             1
 #define VC_PARSE_ERROR          -10
+#define MAX_VC_FIELD            100
 
 typedef struct vc_buf {
     unsigned char *p;

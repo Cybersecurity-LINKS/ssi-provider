@@ -64,10 +64,9 @@ void vc_freectx(void *vcctx){
 
 char *vc_create(char *id, char *issuer, char *subject, char *verification_method, EVP_PKEY *pkey)
 {
-    char time_buf[100], time_buf2[100];
+    
     char *sig_type = NULL, *md_name = NULL;
     char *sig = NULL;
-    int key_type;
 
     cJSON *vc = cJSON_CreateObject();
     if (vc == NULL)
@@ -75,13 +74,25 @@ char *vc_create(char *id, char *issuer, char *subject, char *verification_method
         return NULL;
     }
 
-    //Fill the part that contains credential metadata and claims
+    // popolo il ctx tramite gli OSSL_PARAMS (id, issuer, subject, verification_method)
+
+    //gli altri campi del ctx sono fissi (context, type, purpose)
+
+    //gli altri campi del ctx andranno riempiti in fill_metadata_claim() e vc_fill_proof() (issuanceDate, prooftype, proofcreated, proofvalue)
+
+    //vc_fill_metdata_claim(vc, ctx)
+
+    // Fill the part that contains credential metadata and claims
     if(!vc_fill_metadata_claim(vc, CONTEXT_VC_V1, id, "VerifiableCredential", issuer, NULL, subject))
         goto fail;
 
-    //Fill the proof
+    //vc_fill_proof(vc, ctx, pkey)
+
+    // Fill the proof
     if(vc_fill_proof(vc, pkey, NULL, NULL, verification_method, "assertionMethod", NULL) == -1)
         goto fail;
+
+    //ora posso fare una get ctx per restituire tutti i campi della vc al caller 
 
     char *verifiable_credential = cJSON_Print(vc);
     cJSON_Delete(vc);
@@ -90,6 +101,17 @@ char *vc_create(char *id, char *issuer, char *subject, char *verification_method
 fail:
     cJSON_Delete(vc);
     return NULL;
+}
+
+int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
+{
+        //creates a json for the verifiable credential
+        
+        //the caller does a set_ctx_params()
+
+        //vc_fill_metadata_and_claim(vc_json, vcctx)
+
+        //vc_verify_proof(vc_cjson, vcctx, pkey)  
 }
 
 int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
@@ -157,6 +179,11 @@ int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
     if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->proof.value.p))
         return 0;
 
+    if (vc_cjson_print(ctx, vc_stream) == VC_PARSE_ERROR)
+    {
+        return 0;
+    }
+
     return 1;
 }
 
@@ -164,8 +191,103 @@ int vc_serialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
 {
     
     /* From the caller point of view this looks like a set_ctx_params */
+    VC_CTX *ctx = (VC_CTX *)vcctx;
+    const OSSL_PARAM *p;
+    char *str = NULL;
 
-    
+    if (ctx == NULL)
+        return 0;
+    if (params == NULL)
+        return 1;
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_CONTEXT);
+    if(p != NULL) {
+        OPENSSL_free(ctx->atContext.p);
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->atContext.p = OPENSSL_strdup(str);
+        ctx->atContext.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ID);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->id.p = OPENSSL_strdup(str);
+        ctx->id.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_TYPE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->type.p = OPENSSL_strdup(str);
+        ctx->type.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUER);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->issuer.p = OPENSSL_strdup(str);
+        ctx->issuer.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUANCE_DATE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->issuanceDate.p = OPENSSL_strdup(str);
+        ctx->issuanceDate.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->credentialSubject.id.p = OPENSSL_strdup(str);
+        ctx->credentialSubject.id.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_TYPE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->proof.type.p = OPENSSL_strdup(str);
+        ctx->proof.type.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_CREATED);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->proof.created.p = OPENSSL_strdup(str);
+        ctx->proof.created.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_PURPOSE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->proof.purpose.p = OPENSSL_strdup(str);
+        ctx->proof.purpose.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_VERIFICATION_METHOD);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->proof.verificationMethod.p = OPENSSL_strdup(str);
+        ctx->proof.verificationMethod.len = strlen(str);    
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_VALUE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->proof.value.p = OPENSSL_strdup(str);
+        ctx->proof.value.len = strlen(str);    
+    }
 
     return 1;
 }
