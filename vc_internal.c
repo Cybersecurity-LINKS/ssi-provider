@@ -1,7 +1,7 @@
 #include "vc_internal.h"
 #include <openssl/evp.h>
 
-int get_key_type(EVP_PKEY *key)
+static int get_key_type(EVP_PKEY *key)
 {
     int ret = 0;
     ret = EVP_PKEY_get_id(key);
@@ -25,7 +25,7 @@ int get_key_type(EVP_PKEY *key)
     return ret;
 }
 
-int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char *sig)
+static int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char *sig)
 {
 
     EVP_MD *md;
@@ -45,10 +45,12 @@ int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char *sig)
     if (sig == NULL || EVP_DigestSign(mctx, (unsigned char *)sig, &siglen, tbs, EVP_MAX_MD_SIZE) <= 0)
         return 0;
 
+    //ENCODE BASE 64
+
     return 1;
 }
 
-int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
+int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
 {
 
     cJSON *vc_json = cJSON_Parse((const char *)vc_stream);
@@ -69,8 +71,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
 
     if (cJSON_IsString(atContext) && atContext->valuestring != NULL)
     {
-        vc->atContext.len = strlen(atContext->valuestring);
-        vc->atContext.p = (unsigned char *)strdup(atContext->valuestring);
+        ctx->atContext.len = strlen(atContext->valuestring);
+        ctx->atContext.p = (unsigned char *)strdup(atContext->valuestring);
     }
     else
     {
@@ -82,8 +84,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     id_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "id");
     if (cJSON_IsString(id_cJSON) && id_cJSON->valuestring != NULL)
     {
-        vc->id.len = strlen(id_cJSON->valuestring);
-        vc->id.p = (unsigned char *)strdup(id_cJSON->valuestring);
+        ctx->id.len = strlen(id_cJSON->valuestring);
+        ctx->id.p = (unsigned char *)strdup(id_cJSON->valuestring);
     }
     else
     {
@@ -95,8 +97,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     type_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "type");
     if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL)
     {
-        vc->type.len = strlen(type_cJSON->valuestring);
-        vc->type.p = (unsigned char *)strdup(type_cJSON->valuestring);
+        ctx->type.len = strlen(type_cJSON->valuestring);
+        ctx->type.p = (unsigned char *)strdup(type_cJSON->valuestring);
     }
     else
     {
@@ -108,8 +110,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     issuer_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "issuer");
     if (cJSON_IsString(issuer_cJSON) && issuer_cJSON->valuestring != NULL)
     {
-        vc->issuer.len = strlen(issuer_cJSON->valuestring);
-        vc->issuer.p = (unsigned char *)strdup(issuer_cJSON->valuestring);
+        ctx->issuer.len = strlen(issuer_cJSON->valuestring);
+        ctx->issuer.p = (unsigned char *)strdup(issuer_cJSON->valuestring);
     }
     else
     {
@@ -121,8 +123,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     issDate_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "issuanceDate");
     if (cJSON_IsString(issDate_cJSON) && issDate_cJSON->valuestring != NULL)
     {
-        vc->issuanceDate.len = strlen(issDate_cJSON->valuestring);
-        vc->issuanceDate.p = (unsigned char *)strdup(issDate_cJSON->valuestring);
+        ctx->issuanceDate.len = strlen(issDate_cJSON->valuestring);
+        ctx->issuanceDate.p = (unsigned char *)strdup(issDate_cJSON->valuestring);
     }
     else
     {
@@ -141,8 +143,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     subject_id_cJSON = cJSON_GetObjectItemCaseSensitive(subject_cJSON, "id");
     if (cJSON_IsString(subject_id_cJSON) && subject_id_cJSON->valuestring != NULL)
     {
-        vc->credentialSubject.id.len = strlen(subject_id_cJSON->valuestring);
-        vc->credentialSubject.id.p = (unsigned char *)strdup(subject_id_cJSON->valuestring);
+        ctx->credentialSubject.id.len = strlen(subject_id_cJSON->valuestring);
+        ctx->credentialSubject.id.p = (unsigned char *)strdup(subject_id_cJSON->valuestring);
     }
     else
     {
@@ -167,8 +169,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     proof_type_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "type");
     if (cJSON_IsString(proof_type_cJSON) && proof_created_cJSON->valuestring != NULL)
     {
-        vc->proof.type.len = strlen(proof_type_cJSON->valuestring);
-        vc->proof.type.p = (unsigned char *)strdup(proof_type_cJSON->valuestring);
+        ctx->proof.type.len = strlen(proof_type_cJSON->valuestring);
+        ctx->proof.type.p = (unsigned char *)strdup(proof_type_cJSON->valuestring);
     }
     else
     {
@@ -178,8 +180,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     proof_created_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "created");
     if (cJSON_IsString(proof_created_cJSON) && proof_created_cJSON->valuestring != NULL)
     {
-        vc->proof.created.len = strlen(proof_created_cJSON->valuestring);
-        vc->proof.created.p = (unsigned char *)strdup(proof_created_cJSON->valuestring);
+        ctx->proof.created.len = strlen(proof_created_cJSON->valuestring);
+        ctx->proof.created.p = (unsigned char *)strdup(proof_created_cJSON->valuestring);
     }
     else
     {
@@ -189,8 +191,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     proof_purpose_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "proofPurpose");
     if (cJSON_IsString(proof_purpose_cJSON) && proof_purpose_cJSON->valuestring != NULL)
     {
-        vc->proof.purpose.len = strlen(proof_purpose_cJSON->valuestring);
-        vc->proof.purpose.p = (unsigned char *)strdup(proof_purpose_cJSON->valuestring);
+        ctx->proof.purpose.len = strlen(proof_purpose_cJSON->valuestring);
+        ctx->proof.purpose.p = (unsigned char *)strdup(proof_purpose_cJSON->valuestring);
     }
     else
     {
@@ -200,8 +202,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     proof_vmethod_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "verificationMethod");
     if (cJSON_IsString(proof_vmethod_cJSON) && proof_vmethod_cJSON->valuestring != NULL)
     {
-        vc->proof.verificationMethod.len = strlen(proof_vmethod_cJSON->valuestring);
-        vc->proof.verificationMethod.p = (unsigned char *)strdup(proof_vmethod_cJSON->valuestring);
+        ctx->proof.verificationMethod.len = strlen(proof_vmethod_cJSON->valuestring);
+        ctx->proof.verificationMethod.p = (unsigned char *)strdup(proof_vmethod_cJSON->valuestring);
     }
     else
     {
@@ -211,8 +213,8 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     proof_value_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "proofValue");
     if (cJSON_IsString(proof_value_cJSON) && proof_value_cJSON->valuestring != NULL)
     {
-        vc->proof.value.len = strlen(proof_value_cJSON->valuestring);
-        vc->proof.value.p = (unsigned char *)strdup(proof_value_cJSON->valuestring);
+        ctx->proof.value.len = strlen(proof_value_cJSON->valuestring);
+        ctx->proof.value.p = (unsigned char *)strdup(proof_value_cJSON->valuestring);
     }
     else
     {
@@ -226,67 +228,58 @@ int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream)
     return 1;
 }
 
-int vc_fill_metadata_claim(cJSON *vc, char *context, char *id, char *type, char *issuer, char *issuance_date, char *subject)
+
+int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
 {
-    cJSON *cSubject = NULL;
 
     //@context
-    if (cJSON_AddStringToObject(vc, "@context", context) == NULL)
+    if (cJSON_AddStringToObject(vc, "@context", ctx->atContext.p) == NULL)
     {
         goto fail;
     }
 
     // id
-    if (cJSON_AddStringToObject(vc, "id", id) == NULL)
+    if (cJSON_AddStringToObject(vc, "id", ctx->id.p) == NULL)
     {
         goto fail;
     }
 
     // type
-    if (cJSON_AddStringToObject(vc, "type", type) == NULL)
+    if (cJSON_AddStringToObject(vc, "type", ctx->type.p) == NULL)
     {
         goto fail;
     }
 
     // issuer
-    if (cJSON_AddStringToObject(vc, "issuer", issuer) == NULL)
+    if (cJSON_AddStringToObject(vc, "issuer", ctx->issuer.p) == NULL)
     {
         goto fail;
     }
 
     // issuanceDate
-    if (issuance_date == NULL)
-    {
-        time_t now = time(0);
-        issuance_date = (char *)malloc(100);
-        strftime(issuance_date, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
-    }
-
-    // issuanceDate
-    if (cJSON_AddStringToObject(vc, "issuanceDate", issuance_date) == NULL)
+    if (cJSON_AddStringToObject(vc, "issuanceDate", ctx->issuanceDate.p) == NULL)
     {
         goto fail;
     }
 
     // credential subject
-    cSubject = cJSON_CreateObject();
+    cJSON *cSubject = cJSON_CreateObject();
     if (cSubject == NULL)
     {
         goto fail;
     }
 
-    cJSON_AddStringToObject(cSubject, "id", subject);
-    
+    cJSON_AddStringToObject(cSubject, "id", ctx->credentialSubject.id.p);
+    cJSON_AddItemToObject(vc, "authenticationMethod", cSubject);
+
     return 1;
 
 fail:
     return 0;
 }
 
-int vc_fill_proof(cJSON *vc, EVP_PKEY *pkey, char *type, char *created, char *verification_method, char *purpose, char *value)
+int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 {
-    int key_type;
-    char *sig = NULL;
     int key_type;
 
     // proof
@@ -296,7 +289,8 @@ int vc_fill_proof(cJSON *vc, EVP_PKEY *pkey, char *type, char *created, char *ve
         goto fail;
     }
 
-    if (pkey != NULL && value == NULL)
+    /* If we don't pass the key then we are serializing not creating the vc */
+    if (pkey != NULL)
     {
         char *md_name = NULL;
 
@@ -311,51 +305,60 @@ int vc_fill_proof(cJSON *vc, EVP_PKEY *pkey, char *type, char *created, char *ve
         switch (key_type)
         {
         case RsaVerificationKey2023:
-            cJSON_AddStringToObject(proof, "type", "RsaVerificationKey2023");
+            ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
             md_name = (char *)malloc(10);
             strcpy(md_name, "SHA256");
             break;
         case EcdsaSecp256r1VerificationKey2023:
-            cJSON_AddStringToObject(proof, "type", "EcdsaSecp256r1VerificationKey2023");
+            ctx->proof.type.p = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
             md_name = (char *)malloc(10);
             strcpy(md_name, "SHA256");
             break;
         case Ed25519VerificationKey2023:
-            cJSON_AddStringToObject(proof, "type", "Ed25519VerificationKey2023");
+            ctx->proof.type.p = OPENSSL_strdup("Ed25519VerificationKey2023");
             break;
         default:
             printf("Unrecognised key type\n");
             goto fail;
         }
 
-        if (!compute_sig(md_name, pkey, tbs, value))
+        if (!compute_sig(md_name, pkey, tbs, ctx->proof.value.p))
             goto fail;
-    } else {
-        cJSON_AddStringToObject(proof, "type", type);
-    }
+    } 
+    
+    //type
+    cJSON_AddStringToObject(proof, "type", ctx->proof.type.p);
 
     // created
-    if (created == NULL)
+    if (ctx->proof.created.p == NULL)
     {
-        created = (char *)malloc(100);
+        ctx->proof.created.p = (char *)malloc(100);
         time_t now = time(0);
-        strftime(created, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+        strftime(ctx->proof.created.p, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
     }
-    cJSON_AddStringToObject(proof, "created", created);
+    cJSON_AddStringToObject(proof, "created", ctx->proof.created.p);
 
     // purpose
-    cJSON_AddStringToObject(proof, "proofPurpose", "assertionMethod");
+    if(ctx->proof.purpose.p == NULL)
+    {
+        ctx->proof.purpose.p = OPENSSL_strdup(VC_PURPOSE);
+    }
+    cJSON_AddStringToObject(proof, "proofPurpose", ctx->proof.purpose.p);
 
     // verification method
-    cJSON_AddStringToObject(proof, "verficationMethod", verification_method);
-
-    /*ENCODE BASE 64*/
+    cJSON_AddStringToObject(proof, "verficationMethod", ctx->proof.verificationMethod.p);
 
     // value
-    cJSON_AddStringToObject(proof, "proofValue", value);
+    cJSON_AddStringToObject(proof, "proofValue", ctx->proof.value.p);
 
+    cJSON_AddItemToObject(vc, "proof", proof);
     return 1;
 
 fail:
     return 0;
+}
+
+int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey){
+
+    
 }

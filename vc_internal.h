@@ -2,9 +2,14 @@
 #include "cJSON.h"
 
 #define CONTEXT_VC_V1          "https://www.w3.org/2018/credentials/v1"
+#define VC_TYPE                "VerifiableCredential"
+#define VC_PURPOSE             "assertionMethod"
 
 #define VC_PARSE_OK             1
 #define VC_PARSE_ERROR          -10
+#define VC_PRINT_OK             1
+#define VC_PRINT_ERROR          -20
+
 #define MAX_VC_FIELD            100
 
 typedef struct vc_buf {
@@ -41,14 +46,10 @@ typedef enum {
     Ed25519VerificationKey2023,         //2
 } KEY_TYPES;
 
-int get_key_type(EVP_PKEY *key);
+int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream);
 
-int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char* sig);
+int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx);
 
-int vc_cjson_parse(VC_CTX *vc, unsigned char *vc_stream);
+int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
 
-int vc_cjson_print(VC_CTX *vc, unsigned char *vc_stream);
-
-int vc_fill_metadata_claim(cJSON *vc, char *context, char *id, char *type, char *issuer, char *issuance_date, char *subject);
-
-int vc_fill_proof(cJSON *vc, EVP_PKEY *pkey, char *type, char *created, char *verification_method, char *purpose, char *value);
+int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
