@@ -25,13 +25,13 @@ static int get_key_type(EVP_PKEY *key)
     return ret;
 }
 
-static int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char *sig)
+static int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char **b64_sig)
 {
-
     EVP_MD *md;
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
+    unsigned char *sig;
 
     mctx = EVP_MD_CTX_new();
     EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL);
@@ -46,8 +46,19 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char *sig)
         return 0;
 
     //ENCODE BASE 64
+    size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1;
+    *b64_sig = (unsigned char*) OPENSSL_malloc(b64_sig_size);
+    if(b64_sig == NULL)
+        goto fail;
+    if(!EVP_EncodeBlock(*b64_sig, sig, siglen)) 
+        goto fail;
 
+    OPENSSL_free(sig);
     return 1;
+
+fail:
+    OPENSSL_free(sig);
+    return 0;
 }
 
 int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
@@ -228,7 +239,6 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     return 1;
 }
 
-
 int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
 {
 
@@ -322,7 +332,7 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
             goto fail;
         }
 
-        if (!compute_sig(md_name, pkey, tbs, ctx->proof.value.p))
+        if (!compute_sig(md_name, pkey, tbs, &ctx->proof.value.p))
             goto fail;
     } 
     
@@ -358,7 +368,36 @@ fail:
     return 0;
 }
 
+int vc_validate(VC_CTX *ctx){
+
+    time_t now = time(0);
+    char curr_time[50];
+    strftime(curr_time, 50, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+
+    if(ctx->issuanceDate.p == NULL || strcmp(ctx->issuanceDate.p, curr_time) > 0)
+        return 0;
+
+    if(ctx->expirationDate.p != NULL && strcmp(ctx->expirationDate.p, curr_time) < 0)
+        return 0;
+
+    if(ctx->atContext.p == NULL || !strcmp(ctx->atContext.p, CONTEXT_VC_V1))
+        return 0;
+
+    if(ctx->type.p == NULL || !strcmp(ctx->type.p, VC_TYPE))
+        return 0;
+
+    if(ctx->credentialSubject.id.p == NULL || strlen(ctx->credentialSubject.id.p))
+        return 0;
+
+    return 1;
+}
+
 int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey){
 
-    
+    // riempi la vc_json di metadata and claims con i campi di ctx
+
+    // printala con cJSON print
+
+    // verify_signature(vc_stream, EVP_PKEY, ctx->proof.value.p)
+
 }

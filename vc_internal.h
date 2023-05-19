@@ -35,6 +35,7 @@ typedef struct verifiable_credential {
     vc_buf type;
     vc_buf issuer;
     vc_buf issuanceDate;
+    vc_buf expirationDate;
     c_subj credentialSubject; 
     proof proof;
 } VC_CTX;
@@ -51,5 +52,7 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream);
 int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx);
 
 int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
+
+int vc_validate(VC_CTX *ctx);
 
 int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
