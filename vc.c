@@ -215,14 +215,16 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         ctx->credentialSubject.id.len = strlen(str);    
     }
 
+    if(!vc_validate(ctx))
+        goto fail;
+
     /* Starting from ctx fill the JSON object with 
     credential metadata and claims. */
     if(!vc_fill_metadata_claim(vc, ctx))
         goto fail;
 
-    //vc_validate() per contrallare che i campi della credenziale sono giusti
-
-    //vc_verify_proof(vc_cjson, vcctx, pkey)
+    if(!vc_verify_proof(vc, ctx, pkey))
+        goto fail;
 
 fail:
     cJSON_Delete(vc);

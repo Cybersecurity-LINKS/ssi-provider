@@ -1,5 +1,6 @@
 #include "vc_internal.h"
 #include <openssl/evp.h>
+#include <openssl/rsa.h>
 
 static int get_key_type(EVP_PKEY *key)
 {
@@ -25,18 +26,25 @@ static int get_key_type(EVP_PKEY *key)
     return ret;
 }
 
-static int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char **b64_sig)
+static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, char **b64_sig)
 {
-    EVP_MD *md;
+    EVP_MD *md = NULL;
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
     unsigned char *sig;
 
+    /* compute signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
-    EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL);
+    if (!EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
+        return 0;
 
-    /*EVP_PKEY = RSA fai delle cose*/
+    if (key_type == RsaVerificationKey2023)
+    {
+        if (EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING) <= 0 
+        || EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST) <= 0)
+            return 0;
+    }
 
     if (EVP_DigestSign(mctx, NULL, &siglen, tbs, EVP_MAX_MD_SIZE) <= 0)
         return 0;
@@ -45,12 +53,12 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, char *tbs, char **b64_sig)
     if (sig == NULL || EVP_DigestSign(mctx, (unsigned char *)sig, &siglen, tbs, EVP_MAX_MD_SIZE) <= 0)
         return 0;
 
-    //ENCODE BASE 64
+    /* ENCODE signature BASE 64  with OpenSSL EVP_EncodeBlock() utility */
     size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1;
-    *b64_sig = (unsigned char*) OPENSSL_malloc(b64_sig_size);
-    if(b64_sig == NULL)
+    *b64_sig = (unsigned char *)OPENSSL_malloc(b64_sig_size);
+    if (b64_sig == NULL)
         goto fail;
-    if(!EVP_EncodeBlock(*b64_sig, sig, siglen)) 
+    if (!EVP_EncodeBlock(*b64_sig, sig, siglen))
         goto fail;
 
     OPENSSL_free(sig);
@@ -60,6 +68,85 @@ fail:
     OPENSSL_free(sig);
     return 0;
 }
+
+static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, char *b64_sig)
+{
+    EVP_MD *md = NULL;
+    EVP_MD_CTX *mctx = NULL;
+    EVP_PKEY_CTX *pctx = NULL;
+    size_t sig_size = 0;
+    unsigned char *sig;
+
+    /* DECODE BASE 64 signature with OpenSSL EVP_DecodeBlock() utility */
+    sig_size = (strlen(b64_sig) * 3) / 4;
+    sig = (unsigned char *)OPENSSL_malloc(sig_size);
+    if (sig == NULL)
+        return 0;
+    if (!EVP_DecodeBlock(sig, b64_sig, sig_size))
+        goto fail;
+    
+    /* verify signature following standard OpenSSL procedure */
+    mctx = EVP_MD_CTX_new();
+    if (EVP_DigestVerifyInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
+        goto fail;
+
+    if (key_type == RsaVerificationKey2023) {
+        if (EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING) <= 0
+				|| EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx,
+				RSA_PSS_SALTLEN_DIGEST) <= 0)
+                return 0;
+    }
+
+    if (EVP_DigestVerify(mctx, sig, sig_size, tbs, strlen(tbs)) <= 0)
+        goto fail;
+
+    OPENSSL_free(sig);
+    return 1;
+
+fail:
+    OPENSSL_free(sig);
+    return 0;
+}
+
+/* static int sign_data(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
+{
+    char *md_name = NULL;
+    int key_type;
+
+    // get the data to be signed
+    char *tbs = cJSON_Print(vc);
+
+    // get key type from openssl
+    if ((key_type = get_key_type(pkey) == -1))
+        return 0;
+
+    // type field and selects the digest to compute the signature
+    switch (key_type)
+    {
+    case RsaVerificationKey2023:
+        ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
+        md_name = (char *)malloc(10);
+        strcpy(md_name, "SHA256");
+        break;
+    case EcdsaSecp256r1VerificationKey2023:
+        ctx->proof.type.p = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
+        md_name = (char *)malloc(10);
+        strcpy(md_name, "SHA256");
+        break;
+    case Ed25519VerificationKey2023:
+        ctx->proof.type.p = OPENSSL_strdup("Ed25519VerificationKey2023");
+        break;
+    default:
+        printf("Unrecognised key type\n");
+        return 0;
+    }
+
+    if (!compute_sig(md_name, pkey, tbs, &ctx->proof.value.p))
+        return 0;
+
+    return 1;
+}
+*/
 
 int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
 {
@@ -239,6 +326,7 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     return 1;
 }
 
+/* fill the metadata and claim section of the VC */
 int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
 {
 
@@ -288,10 +376,9 @@ fail:
     return 0;
 }
 
+/* fill the proof section of the VC*/
 int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 {
-    int key_type;
-
     // proof
     cJSON *proof = cJSON_CreateObject();
     if (proof == NULL)
@@ -303,6 +390,7 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     if (pkey != NULL)
     {
         char *md_name = NULL;
+        int key_type;
 
         // get the data to be signed
         char *tbs = cJSON_Print(vc);
@@ -332,11 +420,11 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
             goto fail;
         }
 
-        if (!compute_sig(md_name, pkey, tbs, &ctx->proof.value.p))
+        if (!compute_sig(md_name, pkey, key_type, tbs, &ctx->proof.value.p))
             goto fail;
-    } 
-    
-    //type
+    }
+
+    // type
     cJSON_AddStringToObject(proof, "type", ctx->proof.type.p);
 
     // created
@@ -349,7 +437,7 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     cJSON_AddStringToObject(proof, "created", ctx->proof.created.p);
 
     // purpose
-    if(ctx->proof.purpose.p == NULL)
+    if (ctx->proof.purpose.p == NULL)
     {
         ctx->proof.purpose.p = OPENSSL_strdup(VC_PURPOSE);
     }
@@ -362,42 +450,79 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     cJSON_AddStringToObject(proof, "proofValue", ctx->proof.value.p);
 
     cJSON_AddItemToObject(vc, "proof", proof);
+
+    cJSON_Delete(proof);
     return 1;
 
 fail:
+    cJSON_Delete(proof);
     return 0;
 }
 
-int vc_validate(VC_CTX *ctx){
-
+/* check the VC structure is valid */
+int vc_validate(VC_CTX *ctx)
+{
     time_t now = time(0);
     char curr_time[50];
     strftime(curr_time, 50, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
-    if(ctx->issuanceDate.p == NULL || strcmp(ctx->issuanceDate.p, curr_time) > 0)
+    /* the issuance date MUSTs be less then current time */
+    if (ctx->issuanceDate.p == NULL || strcmp(ctx->issuanceDate.p, curr_time) > 0)
         return 0;
 
-    if(ctx->expirationDate.p != NULL && strcmp(ctx->expirationDate.p, curr_time) < 0)
+    /* the expiration date MUST be greater then current time */ 
+    if (ctx->expirationDate.p != NULL && strcmp(ctx->expirationDate.p, curr_time) < 0)
         return 0;
 
-    if(ctx->atContext.p == NULL || !strcmp(ctx->atContext.p, CONTEXT_VC_V1))
+    /* @context MUST be equal to "https://www.w3.org/2018/credentials/v1" */
+    if (ctx->atContext.p == NULL || !strcmp(ctx->atContext.p, CONTEXT_VC_V1))
         return 0;
 
-    if(ctx->type.p == NULL || !strcmp(ctx->type.p, VC_TYPE))
+    /* credentail type MUST be "VerifiableCredential" */
+    if (ctx->type.p == NULL || !strcmp(ctx->type.p, VC_TYPE))
         return 0;
 
-    if(ctx->credentialSubject.id.p == NULL || strlen(ctx->credentialSubject.id.p))
+    /* credential subjcet MUST be not null*/
+    if (ctx->credentialSubject.id.p == NULL || strlen(ctx->credentialSubject.id.p))
         return 0;
 
     return 1;
 }
 
-int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey){
+/* check the VC proof is valid */
+int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
+{
+    char *md_name = NULL;
+    int key_type;
 
-    // riempi la vc_json di metadata and claims con i campi di ctx
+    // get the data to be signed
+    char *tbs = cJSON_Print(vc);
 
-    // printala con cJSON print
+    // get key type from openssl
+    if ((key_type = get_key_type(pkey) == -1))
+        return 0;
 
-    // verify_signature(vc_stream, EVP_PKEY, ctx->proof.value.p)
+    // type field and selects the digest to compute the signature
+    switch (key_type)
+    {
+    case RsaVerificationKey2023:
+        ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
+        md_name = (char *)malloc(10);
+        strcpy(md_name, "SHA256");
+        break;
+    case EcdsaSecp256r1VerificationKey2023:
+        ctx->proof.type.p = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
+        md_name = (char *)malloc(10);
+        strcpy(md_name, "SHA256");
+        break;
+    case Ed25519VerificationKey2023:
+        ctx->proof.type.p = OPENSSL_strdup("Ed25519VerificationKey2023");
+        break;
+    default:
+        printf("Unrecognised key type\n");
+        return 0;
+    }
 
+    if (!verify_sig(md_name, pkey, key_type, tbs, ctx->proof.value.p))
+        return 0;
 }

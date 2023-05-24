@@ -41,7 +41,6 @@ typedef struct verifiable_credential {
 } VC_CTX;
 
 typedef enum {
-    //da inserirne anche altre se servono
     RsaVerificationKey2023,             //0
     EcdsaSecp256r1VerificationKey2023,  //1
     Ed25519VerificationKey2023,         //2
