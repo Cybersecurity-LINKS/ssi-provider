@@ -46,6 +46,8 @@ void vc_freectx(void *vcctx){
         ctx->issuer.p = NULL;
         OPENSSL_free(ctx->issuanceDate.p);
         ctx->issuanceDate.p = NULL;
+        OPENSSL_free(ctx->expirationDate.p);
+        ctx->expirationDate.p = NULL;
 
         OPENSSL_free(ctx->credentialSubject.id.p);
         ctx->credentialSubject.id.p = NULL;
@@ -104,6 +106,14 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     ctx->issuanceDate.p = (char *)malloc(100);
     strftime(ctx->issuanceDate.p, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
     ctx->issuanceDate.len = strlen(ctx->issuanceDate.p);
+
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_EXPIRATION_DATE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            goto fail;
+        ctx->expirationDate.p = OPENSSL_strdup(str);
+        ctx->expirationDate.len = strlen(str);    
+    }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
     if(p != NULL) {
@@ -207,6 +217,14 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         ctx->issuanceDate.len = strlen(str);    
     }
 
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            goto fail;
+        ctx->expirationDate.p = OPENSSL_strdup(str);
+        ctx->expirationDate.len = strlen(str);    
+    }
+
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
     if(p != NULL) {
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
@@ -250,7 +268,7 @@ int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
     }
 
     if (ctx->atContext.p == NULL || ctx->id.p == NULL || ctx->type.p == NULL || ctx->issuer.p == NULL 
-        || ctx->issuanceDate.p == NULL ||   ctx->credentialSubject.id.p == NULL || 
+        || ctx->issuanceDate.p == NULL || ctx->expirationDate.p == NULL || ctx->credentialSubject.id.p == NULL || 
         ctx->proof.type.p == NULL || ctx->proof.created.p == NULL || ctx->proof.purpose.p == NULL ||
         ctx->proof.verificationMethod.p == NULL || ctx->proof.value.p == NULL)
         return 0;
@@ -351,6 +369,14 @@ int vc_set_ctx_params (void *vcctx, const OSSL_PARAM params[]) {
         ctx->issuanceDate.len = strlen(str);    
     }
 
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
+    if(p != NULL) {
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
+            return 0;
+        ctx->expirationDate.p = OPENSSL_strdup(str);
+        ctx->expirationDate.len = strlen(str);    
+    }
+
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
     if(p != NULL) {
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
@@ -431,6 +457,10 @@ int vc_get_ctx_params(void *vcctx, OSSL_PARAM params[]) {
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ISSUANCE_DATE);
     if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->issuanceDate.p))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_EXPIRATION_DATE);
+    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->expirationDate.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_SUBJECT);
