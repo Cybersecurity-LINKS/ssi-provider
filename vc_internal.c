@@ -229,6 +229,19 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
         return VC_PARSE_ERROR;
     }
 
+    // expiration date
+    const cJSON *expDate_cJSON = NULL;
+    expDate_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "expirationDate");
+    if (cJSON_IsString(expDate_cJSON) && expDate_cJSON->valuestring != NULL)
+    {
+        ctx->expirationDate.len = strlen(expDate_cJSON->valuestring);
+        ctx->expirationDate.p = (unsigned char *)strdup(expDate_cJSON->valuestring);
+    }
+    else
+    {
+        return VC_PARSE_ERROR;
+    }
+
     // credential subject
     const cJSON *subject_cJSON = NULL;
     const cJSON *subject_id_cJSON = NULL;
@@ -360,6 +373,13 @@ int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
         goto fail;
     }
 
+    // expirationDate
+    if (cJSON_AddStringToObject(vc, "expirationDate", ctx->expirationDate.p) == NULL)
+    {
+        goto fail;
+    }
+
+
     // credential subject
     cJSON *cSubject = cJSON_CreateObject();
     if (cSubject == NULL)
@@ -368,7 +388,7 @@ int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
     }
 
     cJSON_AddStringToObject(cSubject, "id", ctx->credentialSubject.id.p);
-    cJSON_AddItemToObject(vc, "authenticationMethod", cSubject);
+    cJSON_AddItemToObject(vc, "credentialSubject", cSubject);
 
     return 1;
 
