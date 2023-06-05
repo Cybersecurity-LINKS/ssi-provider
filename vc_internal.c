@@ -1,5 +1,4 @@
 #include "vc_internal.h"
-#include <openssl/evp.h>
 #include <openssl/rsa.h>
 
 static int get_key_type(EVP_PKEY *key)
@@ -26,9 +25,8 @@ static int get_key_type(EVP_PKEY *key)
     return ret;
 }
 
-static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, char **b64_sig)
+static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, unsigned char **b64_sig)
 {
-    EVP_MD *md = NULL;
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
@@ -36,7 +34,7 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, c
 
     /* compute signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
-    if (!EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
+    if (EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
         return 0;
 
     if (key_type == RsaVerificationKey2023)
@@ -46,17 +44,17 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, c
             return 0;
     }
 
-    if (EVP_DigestSign(mctx, NULL, &siglen, tbs, EVP_MAX_MD_SIZE) <= 0)
+    if (EVP_DigestSign(mctx, NULL, &siglen, (unsigned char *)tbs, EVP_MAX_MD_SIZE) <= 0)
         return 0;
 
     sig = OPENSSL_malloc(siglen);
-    if (sig == NULL || EVP_DigestSign(mctx, (unsigned char *)sig, &siglen, tbs, EVP_MAX_MD_SIZE) <= 0)
+    if (sig == NULL || EVP_DigestSign(mctx, (unsigned char *)sig, &siglen, (unsigned char *)tbs, EVP_MAX_MD_SIZE) <= 0)
         return 0;
 
     /* ENCODE signature BASE 64  with OpenSSL EVP_EncodeBlock() utility */
     size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1;
     *b64_sig = (unsigned char *)OPENSSL_malloc(b64_sig_size);
-    if (b64_sig == NULL)
+    if (*b64_sig == NULL)
         goto fail;
     if (!EVP_EncodeBlock(*b64_sig, sig, siglen))
         goto fail;
@@ -69,9 +67,8 @@ fail:
     return 0;
 }
 
-static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, char *b64_sig)
+static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, unsigned char *b64_sig)
 {
-    EVP_MD *md = NULL;
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t sig_size = 0;
@@ -97,7 +94,7 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
                 return 0;
     }
 
-    if (EVP_DigestVerify(mctx, sig, sig_size, tbs, strlen(tbs)) <= 0)
+    if (EVP_DigestVerify(mctx, sig, sig_size, (unsigned char *)tbs, strlen(tbs)) <= 0)
         goto fail;
 
     OPENSSL_free(sig);

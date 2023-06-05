@@ -4,8 +4,6 @@
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
 
-#include <openssl/did.h>
-
 
 extern const OSSL_DISPATCH did_crud_functions[];
 extern const OSSL_DISPATCH did_fake_functions[];
@@ -19,7 +17,7 @@ extern const OSSL_DISPATCH vc_functions[];
 static const OSSL_ALGORITHM ssi_vc[] = {
     {"VC","provider=ssiprovider", vc_functions},
     {NULL, NULL, NULL}
-}
+};
 
 static const OSSL_PARAM * ssi_gettable_params(void *provctx)
 {
@@ -82,6 +80,6 @@ static const OSSL_DISPATCH ssi_dispatch_table[] = {
 
 OPENSSL_EXPORT int OSSL_provider_init(const OSSL_CORE_HANDLE *handle,const OSSL_DISPATCH *in, const OSSL_DISPATCH **out,void **provctx){
     printf("SSI INIT\n");
-    *out = dispatch_table;
+    *out = ssi_dispatch_table;
     return 1;
 }

@@ -2,7 +2,7 @@
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
 #include <openssl/params.h>
-#include <openssl/did.h>
+#include <openssl/evp_ssi.h>
 #include "did_method.h"
 
 static OSSL_FUNC_did_create_fn did_create;

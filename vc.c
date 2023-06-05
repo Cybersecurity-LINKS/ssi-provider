@@ -1,7 +1,7 @@
 #include "vc_internal.h"
 #include <time.h>
 #include <sys/time.h>
-
+#include <openssl/err.h>
 #include <openssl/core.h>
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
@@ -107,7 +107,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     strftime(ctx->issuanceDate.p, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
     ctx->issuanceDate.len = strlen(ctx->issuanceDate.p);
 
-    p = OSSL_PARAM_locate_const(params, OSSL_VC_EXPIRATION_DATE);
+    p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
     if(p != NULL) {
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -253,8 +253,6 @@ int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
 {
 
     VC_CTX *ctx = (VC_CTX *)vcctx;
-    const OSSL_PARAM *p;
-    char *str = NULL;
 
     if (ctx == NULL)
         return 0;
@@ -431,7 +429,6 @@ int vc_get_ctx_params(void *vcctx, OSSL_PARAM params[]) {
     
     VC_CTX *ctx = (VC_CTX *)vcctx;
     const OSSL_PARAM *p;
-    char *str = NULL;
 
     if (ctx == NULL)
         return 0;
@@ -495,7 +492,7 @@ const OSSL_DISPATCH vc_functions[] = {
     {OSSL_FUNC_VC_VERIFY, (void (*)(void))vc_verify},
     {OSSL_FUNC_VC_SERIALIZE, (void (*)(void))vc_serialize},
     {OSSL_FUNC_VC_DESERIALIZE, (void (*)(void))vc_deserialize},
-    {OSSL_FUNC_VC_FREECTX, (void (*)(void))vc_freectx}
-    {OSSL_FUNC_VC_SET_CTX_PARAMS, (void (*)(void))vc_set_ctx_params}
-    {OSSL_FUNC_VC_GET_CTX_PARAMS, (void (*)(void))vc_get_ctx_params}
+    {OSSL_FUNC_VC_FREECTX, (void (*)(void))vc_freectx},
+    {OSSL_FUNC_VC_SET_CTX_PARAMS, (void (*)(void))vc_set_ctx_params},
+    {OSSL_FUNC_VC_GET_CTX_PARAMS, (void (*)(void))vc_get_ctx_params},
     {0, NULL}};
