@@ -19,7 +19,7 @@ static const OSSL_ALGORITHM ssi_vc[] = {
     {NULL, NULL, NULL}
 };
 
-static const OSSL_PARAM * ssi_gettable_params(void *provctx)
+static const OSSL_PARAM *ssi_gettable_params(void *provctx)
 {
     static const OSSL_PARAM param_types[] = {
         OSSL_PARAM_DEFN(OSSL_PROV_PARAM_NAME, OSSL_PARAM_UTF8_PTR, NULL, 0),

@@ -16,7 +16,7 @@ CFLAGS  +=\
 LDFLAGS= -shared -ldl -lm -liota_crypto -liota_core -liota_client -lcurl -lsodium\
 
 TARGET  = libssiprovider.so
-SOURCES = ssiprovider.c ssiprovider.h CRUD.c did_method.c did_method.h OTT_def.h OTT.c ott-wrapper.c cJSON.c cJSON.h vc_internal.h vc_internal.c vc.c
+SOURCES = ssiprovider.c ssiprovider.h CRUD.c did_method.c did_method.h OTT_def.h OTT.c OTT.h ott-wrapper.c cJSON.c cJSON.h vc_internal.h vc_internal.c vc.c
 OBJECTS = $(SOURCES:.c=.o)
 
 
