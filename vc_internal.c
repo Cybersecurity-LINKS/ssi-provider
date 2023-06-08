@@ -468,7 +468,10 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 
     cJSON_AddItemToObject(vc, "proof", proof);
 
-    cJSON_Delete(proof);
+    printf("%s\n", cJSON_Print(proof));
+    printf("%s\n", cJSON_Print(vc));
+
+    //cJSON_Delete(proof);
     return 1;
 
 fail:

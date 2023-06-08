@@ -30,10 +30,10 @@ clean:
 
 install:
 	
-	cp libssiprovider.so $(OPENSSL_DIR)/lib64/ossl-modules/ssiprovider.so
+	cp libssiprovider.so $(OPENSSL_DIR)/lib64/ossl-modules/ssi.so
 
 uninstall:
-	rm -f $(OPENSSL_DIR)/lib64/ossl-modules/ssiprovider.so
+	rm -f $(OPENSSL_DIR)/lib64/ossl-modules/ssi.so
 
 tests:
 	chmod -R 777 ./test

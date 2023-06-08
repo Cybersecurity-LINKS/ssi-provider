@@ -20,8 +20,8 @@ void *vc_newctx(void *provctx){             //should i do something with provctx
     
     VC_CTX *ctx;
     
-    if (!ossl_prov_is_running())
-        return NULL;
+    /*if (!ossl_prov_is_running())
+        return NULL;*/
 
     ctx = OPENSSL_zalloc(sizeof(*ctx));
     if (ctx == NULL) {
@@ -128,6 +128,8 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     if(!vc_fill_metadata_claim(vc, ctx))
         goto fail;
 
+    printf("%s\n", cJSON_Print(vc));
+
     /* Fill ctx with proof. Some fields are 
     retrieved from params[], some other are 
     generated on the fly in the proof creation. */
@@ -143,10 +145,11 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     if(!vc_fill_proof(vc, ctx, pkey))
         goto fail;
 
+    printf("%s\n", cJSON_Print(vc));
     /* return to the caller the fields of the 
     created vc through params[]*/
-    if(!vc_get_ctx_params((void *)ctx, params))
-        return 0;
+    /*if(!vc_get_ctx_params((void *)ctx, params))
+        return 0;*/
 
     /* Return the serialized vc */
     char *verifiable_credential = cJSON_Print(vc);
