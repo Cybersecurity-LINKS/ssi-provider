@@ -275,7 +275,7 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     }
 
     proof_type_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "type");
-    if (cJSON_IsString(proof_type_cJSON) && proof_created_cJSON->valuestring != NULL)
+    if (cJSON_IsString(proof_type_cJSON) && proof_type_cJSON->valuestring != NULL)
     {
         ctx->proof.type.len = strlen(proof_type_cJSON->valuestring);
         ctx->proof.type.p = (unsigned char *)strdup(proof_type_cJSON->valuestring);
@@ -330,8 +330,6 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     }
 
     cJSON_Delete(vc_json);
-
-    return VC_PARSE_OK;
 
     return 1;
 }
@@ -461,7 +459,7 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     cJSON_AddStringToObject(proof, "proofPurpose", ctx->proof.purpose.p);
 
     // verification method
-    cJSON_AddStringToObject(proof, "verficationMethod", ctx->proof.verificationMethod.p);
+    cJSON_AddStringToObject(proof, "verificationMethod", ctx->proof.verificationMethod.p);
 
     // value
     cJSON_AddStringToObject(proof, "proofValue", ctx->proof.value.p);

@@ -302,12 +302,12 @@ int did_ott_create(method *methods, char *did_new)
     /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
                                  .port = MAINNET00_PORT,
                                  .tls = true}; */
-    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+    /*IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
                                  .port = 14265,
-                                 .tls = false};
-    /* IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
+                                 .tls = false};*/
+    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
                                  .port = 80,
-                                 .tls = false}; */
+                                 .tls = false};
 
     ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
     if (ret != OTT_OK)
@@ -376,12 +376,12 @@ int did_ott_resolve(did_document *didDocument, char *did)
     /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
                                  .port = MAINNET00_PORT,
                                  .tls = true}; */
-    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+    /* IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
                                  .port = 14265,
-                                 .tls = false};
-    /* IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-                                 .port = 80,
                                  .tls = false}; */
+    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
+                                 .port = 80,
+                                 .tls = false};
 
     fprintf(stdout, "RESOLVE\n");
 

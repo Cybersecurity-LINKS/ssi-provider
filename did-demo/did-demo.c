@@ -4,7 +4,7 @@
 #include "openssl/crypto.h"
 #include "openssl/core_dispatch.h"
 #include "openssl/core_names.h"
-#include "openssl/did.h"
+#include "openssl/evp_ssi.h"
 #include "openssl/store.h"
 #include "openssl/encoder.h"
 #include "time.h"
@@ -226,7 +226,7 @@ int main(void) {
     }
 
     // load the did provider for did operations
-    provider = OSSL_PROVIDER_load(NULL, "didprovider");
+    provider = OSSL_PROVIDER_load(NULL, "ssi");
     if (provider == NULL) {
         printf("DID provider load failed\n");
         goto error;

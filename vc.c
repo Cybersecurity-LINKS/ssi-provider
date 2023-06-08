@@ -439,51 +439,51 @@ int vc_get_ctx_params(void *vcctx, OSSL_PARAM params[]) {
         return 1;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_CONTEXT);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->atContext.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->atContext.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ID);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->id.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->id.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_TYPE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->type.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->type.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ISSUER);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->issuer.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->issuer.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ISSUANCE_DATE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->issuanceDate.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->issuanceDate.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_EXPIRATION_DATE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->expirationDate.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->expirationDate.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_SUBJECT);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->credentialSubject.id.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->credentialSubject.id.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_TYPE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->proof.type.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->proof.type.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_CREATED);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->proof.created.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->proof.created.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_PURPOSE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->proof.purpose.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->proof.purpose.p))
         return 0;
     
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_VERIFICATION_METHOD);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->proof.verificationMethod.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->proof.verificationMethod.p))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_VALUE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_string(p, ctx->proof.value.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, ctx->proof.value.p))
         return 0;
 
     return 1;

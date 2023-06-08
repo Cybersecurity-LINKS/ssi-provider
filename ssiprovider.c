@@ -8,8 +8,8 @@
 extern const OSSL_DISPATCH did_crud_functions[];
 extern const OSSL_DISPATCH did_fake_functions[];
 static const OSSL_ALGORITHM ssi_did[] = {
-    {"ETH", "provider=ssi", did_crud_functions},
-    {"OTT", "provider=ssi", did_fake_functions},
+    {"OTT", "provider=ssi", did_crud_functions},
+    {"ETH", "provider=ssi", did_fake_functions},
     {NULL, NULL, NULL}};
 
 extern const OSSL_DISPATCH vc_functions[];
