@@ -11,7 +11,7 @@
 #define VC_PRINT_OK             1
 #define VC_PRINT_ERROR          -20
 
-#define MAX_VC_FIELD            100
+#define MAX_VC_FIELD            1000
 
 typedef struct vc_buf {
     unsigned char *p;

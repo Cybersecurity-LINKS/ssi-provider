@@ -74,9 +74,10 @@ int main()
 
     if (!PEM_read_PrivateKey(fp_pkey, &pkey, NULL, NULL))
     {
-        printf("Could not translate a PEM into an EVP_PKEY\n");
+        printf("Could not translate PEM into EVP_PKEY\n");
         goto err;
     }
+    fclose(fp_pkey);
 
     if (get_key_type(pkey) == -1)
     {
@@ -98,7 +99,7 @@ int main()
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_ID, "http://example.com/credentials/1", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_ISSUER, "http://example.com/issuer/1", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_EXPIRATION_DATE, "2025-01-01T12:00:00Z", 0);
-	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_SUBJECT, "did:example:abcdefghi", 0);
+	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_SUBJECT, "did:ott:0726D1CC750C612C1E91608261BC374510949569E7A0B9CC8FE95008D7C9ABE3", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_VERIFICATION_METHOD, "http://example.com/issuer/1#key-2", 0);
 	params[params_n] = OSSL_PARAM_construct_end();
 
@@ -114,6 +115,7 @@ int main()
     for(i = 0; i < strlen(vc); i++){
         fputc(vc[i], fp_vc);
     }
+    fclose(fp_vc);
 
 err:
     EVP_PKEY_free(pkey);
@@ -121,8 +123,6 @@ err:
     OSSL_PROVIDER_unload(provider_base);
     EVP_VC_free(evp_vc);
     EVP_VC_CTX_free(vc_ctx);
-    fclose(fp_pkey);
-    fclose(fp_vc);
 
     return 0;
 }

@@ -32,6 +32,9 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, u
     size_t siglen = 0;
     unsigned char *sig;
 
+    printf("%s\n", tbs);
+    printf("tbs length: %d\n", strlen(tbs));
+
     /* compute signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
     if (EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
@@ -59,10 +62,22 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, u
     if (!EVP_EncodeBlock(*b64_sig, sig, siglen))
         goto fail;
 
+    EVP_ENCODE_CTX* ctx = EVP_ENCODE_CTX_new();
+	if (ctx == NULL) {
+		return -1;
+	}
+
+    /*size_t b64_sig_size = EVP_ENCODE_LENGTH(siglen);
+	*b64_sig = (unsigned char*) OPENSSL_malloc(b64_sig_size);
+	if (*b64_sig == NULL)
+		goto fail;*/
+
+	/*EVP_ENCODE_CTX_free(ctx);*/
     OPENSSL_free(sig);
     return 1;
 
 fail:
+	/*EVP_ENCODE_CTX_free(ctx);*/
     OPENSSL_free(sig);
     return 0;
 }
@@ -73,28 +88,35 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, un
     EVP_PKEY_CTX *pctx = NULL;
     size_t sig_size = 0;
     unsigned char *sig;
+    int ret;
 
+    printf("%s\n", b64_sig);
     /* DECODE BASE 64 signature with OpenSSL EVP_DecodeBlock() utility */
     sig_size = (strlen(b64_sig) * 3) / 4;
-    sig = (unsigned char *)OPENSSL_malloc(sig_size);
+    sig = (unsigned char *)OPENSSL_zalloc(sig_size);
     if (sig == NULL)
         return 0;
-    if (!EVP_DecodeBlock(sig, b64_sig, sig_size))
-        goto fail;
+    /*if (!EVP_DecodeBlock(sig, b64_sig, sig_size))
+        goto fail;*/
+    ret = EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig));
+    printf("ret: %d\n", ret);
     
+    printf("%s\n", tbs);
+    printf("tbs length: %d\n", strlen(tbs));
+
     /* verify signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
     if (EVP_DigestVerifyInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
         goto fail;
 
-    if (key_type == RsaVerificationKey2023) {
+    /*if (key_type == RsaVerificationKey2023) {
         if (EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING) <= 0
 				|| EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx,
 				RSA_PSS_SALTLEN_DIGEST) <= 0)
                 return 0;
-    }
+    }*/
 
-    if (EVP_DigestVerify(mctx, sig, sig_size, (unsigned char *)tbs, strlen(tbs)) <= 0)
+    if (EVP_DigestVerify(mctx, sig, 64, (unsigned char *)tbs, strlen(tbs)) <= 0)
         goto fail;
 
     OPENSSL_free(sig);
@@ -385,6 +407,8 @@ int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
     cJSON_AddStringToObject(cSubject, "id", ctx->credentialSubject.id.p);
     cJSON_AddItemToObject(vc, "credentialSubject", cSubject);
 
+    printf("%s\n", cJSON_Print(vc));
+
     return 1;
 
 fail:
@@ -411,9 +435,10 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
         char *tbs = cJSON_Print(vc);
 
         // get key type from openssl
-        if ((key_type = get_key_type(pkey) == -1))
-            goto fail;
+        /*if ((key_type = get_key_type(pkey) == -1))
+            goto fail;*/
 
+        key_type = get_key_type(pkey);
         // type field and selects the digest to compute the signature
         switch (key_type)
         {
@@ -466,9 +491,6 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 
     cJSON_AddItemToObject(vc, "proof", proof);
 
-    printf("%s\n", cJSON_Print(proof));
-    printf("%s\n", cJSON_Print(vc));
-
     //cJSON_Delete(proof);
     return 1;
 
@@ -493,15 +515,15 @@ int vc_validate(VC_CTX *ctx)
         return 0;
 
     /* @context MUST be equal to "https://www.w3.org/2018/credentials/v1" */
-    if (ctx->atContext.p == NULL || !strcmp(ctx->atContext.p, CONTEXT_VC_V1))
+    if (ctx->atContext.p == NULL || strcmp(ctx->atContext.p, CONTEXT_VC_V1) != 0)
         return 0;
 
     /* credentail type MUST be "VerifiableCredential" */
-    if (ctx->type.p == NULL || !strcmp(ctx->type.p, VC_TYPE))
+    if (ctx->type.p == NULL || strcmp(ctx->type.p, VC_TYPE) != 0)
         return 0;
 
     /* credential subjcet MUST be not null*/
-    if (ctx->credentialSubject.id.p == NULL || strlen(ctx->credentialSubject.id.p))
+    if (ctx->credentialSubject.id.p == NULL || strlen(ctx->credentialSubject.id.p) == 0)
         return 0;
 
     return 1;
@@ -517,11 +539,13 @@ int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     char *tbs = cJSON_Print(vc);
 
     // get key type from openssl
-    if ((key_type = get_key_type(pkey) == -1))
-        return 0;
+    /*if ((key_type = get_key_type(pkey) == -1))
+        return 0;*/
+
+    key_type = get_key_type(pkey);
 
     // type field and selects the digest to compute the signature
-    switch (key_type)
+    switch(key_type)
     {
     case RsaVerificationKey2023:
         ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
@@ -543,4 +567,6 @@ int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 
     if (!verify_sig(md_name, pkey, key_type, tbs, ctx->proof.value.p))
         return 0;
+
+    return 1;
 }
