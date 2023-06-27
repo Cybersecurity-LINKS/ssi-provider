@@ -65,9 +65,9 @@ did-demo/demo
 did-demo/*.pem
 
 # vc-demo folder
-demo/vc.txt
-demo/vc-demo
-demo/*.pem
-demo/.settings/
-demo/.project
-demo/.cproject
+vc-demo/vc.txt
+vc-demo/vc-demo
+vc-demo/*.pem
+vc-demo/.settings
+vc-demo/.project
+vc-demo/.cproject
