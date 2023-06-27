@@ -58,8 +58,16 @@ channel.txt
 .idea/
 .vscode/
 
-# demo folder
+# did-demo folder
 demo/.idea/
 demo/*.txt
 demo/demo
 demo/*.pem
+
+# vc-demo folder
+demo/vc.txt
+demo/vc-demo
+demo/*.pem
+demo/.settings/
+demo/.project
+demo/.cproject

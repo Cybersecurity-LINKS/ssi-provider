@@ -30,10 +30,11 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, u
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
-    unsigned char *sig;
+    unsigned char *sig = NULL;
+    int ret;
 
     printf("%s\n", tbs);
-    printf("tbs length: %d\n", strlen(tbs));
+    printf("tbs length: %ld\n", strlen(tbs));
 
     /* compute signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
@@ -47,27 +48,30 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, u
             return 0;
     }
 
-    if (EVP_DigestSign(mctx, NULL, &siglen, (unsigned char *)tbs, EVP_MAX_MD_SIZE) <= 0)
+    if (EVP_DigestSign(mctx, NULL, &siglen, (const unsigned char*)tbs, strlen(tbs)) <= 0)
         return 0;
 
     sig = OPENSSL_malloc(siglen);
-    if (sig == NULL || EVP_DigestSign(mctx, (unsigned char *)sig, &siglen, (unsigned char *)tbs, EVP_MAX_MD_SIZE) <= 0)
+    if (sig == NULL || EVP_DigestSign(mctx, sig, &siglen, (const unsigned char*)tbs, strlen(tbs)) <= 0)
         return 0;
 
     /* ENCODE signature BASE 64  with OpenSSL EVP_EncodeBlock() utility */
-    size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1;
+    size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1; 
     *b64_sig = (unsigned char *)OPENSSL_malloc(b64_sig_size);
     if (*b64_sig == NULL)
         goto fail;
-    if (!EVP_EncodeBlock(*b64_sig, sig, siglen))
-        goto fail;
+    /* if(!EVP_EncodeBlock(*b64_sig, sig, siglen))
+        goto fail; */
 
-    EVP_ENCODE_CTX* ctx = EVP_ENCODE_CTX_new();
+    ret = EVP_EncodeBlock(*b64_sig, sig, siglen);
+    printf("ret: %d\n", ret);
+
+    /*EVP_ENCODE_CTX* ctx = EVP_ENCODE_CTX_new();
 	if (ctx == NULL) {
 		return -1;
 	}
 
-    /*size_t b64_sig_size = EVP_ENCODE_LENGTH(siglen);
+    size_t b64_sig_size = EVP_ENCODE_LENGTH(siglen);
 	*b64_sig = (unsigned char*) OPENSSL_malloc(b64_sig_size);
 	if (*b64_sig == NULL)
 		goto fail;*/
@@ -90,9 +94,41 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, un
     unsigned char *sig;
     int ret;
 
-    printf("%s\n", b64_sig);
+    BIO* bio = BIO_new(BIO_s_mem());
+	if (bio == NULL) {
+		printf("Failed to create BIO\n");
+		return 0;
+	}
+
+	if (!PEM_write_bio_PUBKEY(bio, pkey, NULL, NULL, 0, NULL, NULL)) {
+		printf("Failed to write public key to BIO\n");
+		BIO_free(bio);
+		return 0;
+	}
+
+	char* privateKeyData;
+	long privateKeyLength = BIO_get_mem_data(bio, &privateKeyData);
+
+	printf("Public Key:\n%s\n", privateKeyData);
+
+    //printf("%s\n", b64_sig);
     /* DECODE BASE 64 signature with OpenSSL EVP_DecodeBlock() utility */
-    sig_size = (strlen(b64_sig) * 3) / 4;
+    switch(key_type)
+    {
+    case RsaVerificationKey2023:
+		sig_size = 256;
+		break;
+	case EcdsaSecp256r1VerificationKey2023:
+		sig_size = 72;
+		break;
+	case Ed25519VerificationKey2023:
+		sig_size = 64;
+		break;
+	default:
+		printf("Unrecognised key type\n");
+		return 0;
+    }
+	
     sig = (unsigned char *)OPENSSL_zalloc(sig_size);
     if (sig == NULL)
         return 0;
@@ -101,22 +137,23 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, un
     ret = EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig));
     printf("ret: %d\n", ret);
     
+    printf("%s\n", sig);
     printf("%s\n", tbs);
-    printf("tbs length: %d\n", strlen(tbs));
+    //printf("tbs length: %d\n", strlen(tbs));
 
     /* verify signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
     if (EVP_DigestVerifyInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
         goto fail;
 
-    /*if (key_type == RsaVerificationKey2023) {
+    if (key_type == RsaVerificationKey2023) {
         if (EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING) <= 0
 				|| EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx,
 				RSA_PSS_SALTLEN_DIGEST) <= 0)
-                return 0;
-    }*/
+                goto fail;
+    }
 
-    if (EVP_DigestVerify(mctx, sig, 64, (unsigned char *)tbs, strlen(tbs)) <= 0)
+    if (EVP_DigestVerify(mctx, sig, sig_size, (unsigned char *)tbs, strlen(tbs)) <= 0)
         goto fail;
 
     OPENSSL_free(sig);

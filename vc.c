@@ -277,6 +277,9 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     if(!vc_verify_proof(vc, ctx, pkey))
         goto fail;
 
+    cJSON_Delete(vc);
+    return 1;
+
 fail:
     cJSON_Delete(vc);
     return 0;
