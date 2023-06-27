@@ -5,8 +5,7 @@ static int get_key_type(EVP_PKEY *key)
 {
     int ret = 0;
     ret = EVP_PKEY_get_id(key);
-    // printf("key type %d\n", ret);
-    // const char * name1 = EVP_PKEY_get0_type_name(key2);
+    
     switch (ret)
     {
     case EVP_PKEY_RSA:
@@ -25,18 +24,14 @@ static int get_key_type(EVP_PKEY *key)
     return ret;
 }
 
-static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, unsigned char **b64_sig)
+static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, char **b64_sig)
 {
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
     unsigned char *sig = NULL;
-    int ret;
 
-    printf("%s\n", tbs);
-    printf("tbs length: %ld\n", strlen(tbs));
-
-    /* compute signature following standard OpenSSL procedure */
+    /* compute signature following OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
     if (EVP_DigestSignInit_ex(mctx, &pctx, md_name, NULL, NULL, pkey, NULL) <= 0)
         return 0;
@@ -57,61 +52,27 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, u
 
     /* ENCODE signature BASE 64  with OpenSSL EVP_EncodeBlock() utility */
     size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1; 
-    *b64_sig = (unsigned char *)OPENSSL_malloc(b64_sig_size);
+    *b64_sig = (char *)OPENSSL_malloc(b64_sig_size);
     if (*b64_sig == NULL)
         goto fail;
-    /* if(!EVP_EncodeBlock(*b64_sig, sig, siglen))
-        goto fail; */
+    if(!EVP_EncodeBlock(*b64_sig, sig, siglen))
+        goto fail;
 
-    ret = EVP_EncodeBlock(*b64_sig, sig, siglen);
-    printf("ret: %d\n", ret);
-
-    /*EVP_ENCODE_CTX* ctx = EVP_ENCODE_CTX_new();
-	if (ctx == NULL) {
-		return -1;
-	}
-
-    size_t b64_sig_size = EVP_ENCODE_LENGTH(siglen);
-	*b64_sig = (unsigned char*) OPENSSL_malloc(b64_sig_size);
-	if (*b64_sig == NULL)
-		goto fail;*/
-
-	/*EVP_ENCODE_CTX_free(ctx);*/
     OPENSSL_free(sig);
     return 1;
 
 fail:
-	/*EVP_ENCODE_CTX_free(ctx);*/
     OPENSSL_free(sig);
     return 0;
 }
 
-static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, unsigned char *b64_sig)
+static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, char *b64_sig)
 {
     EVP_MD_CTX *mctx = NULL;
     EVP_PKEY_CTX *pctx = NULL;
     size_t sig_size = 0;
     unsigned char *sig;
-    int ret;
 
-    BIO* bio = BIO_new(BIO_s_mem());
-	if (bio == NULL) {
-		printf("Failed to create BIO\n");
-		return 0;
-	}
-
-	if (!PEM_write_bio_PUBKEY(bio, pkey, NULL, NULL, 0, NULL, NULL)) {
-		printf("Failed to write public key to BIO\n");
-		BIO_free(bio);
-		return 0;
-	}
-
-	char* privateKeyData;
-	long privateKeyLength = BIO_get_mem_data(bio, &privateKeyData);
-
-	printf("Public Key:\n%s\n", privateKeyData);
-
-    //printf("%s\n", b64_sig);
     /* DECODE BASE 64 signature with OpenSSL EVP_DecodeBlock() utility */
     switch(key_type)
     {
@@ -129,17 +90,11 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, un
 		return 0;
     }
 	
-    sig = (unsigned char *)OPENSSL_zalloc(sig_size);
+    sig = (unsigned char *)OPENSSL_malloc(sig_size);
     if (sig == NULL)
         return 0;
-    /*if (!EVP_DecodeBlock(sig, b64_sig, sig_size))
-        goto fail;*/
-    ret = EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig));
-    printf("ret: %d\n", ret);
-    
-    printf("%s\n", sig);
-    printf("%s\n", tbs);
-    //printf("tbs length: %d\n", strlen(tbs));
+    if (!EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig)))
+        goto fail;
 
     /* verify signature following standard OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
@@ -153,7 +108,7 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, un
                 goto fail;
     }
 
-    if (EVP_DigestVerify(mctx, sig, sig_size, (unsigned char *)tbs, strlen(tbs)) <= 0)
+    if (EVP_DigestVerify(mctx, sig, sig_size, (const unsigned char *)tbs, strlen(tbs)) <= 0)
         goto fail;
 
     OPENSSL_free(sig);
@@ -163,46 +118,6 @@ fail:
     OPENSSL_free(sig);
     return 0;
 }
-
-/* static int sign_data(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
-{
-    char *md_name = NULL;
-    int key_type;
-
-    // get the data to be signed
-    char *tbs = cJSON_Print(vc);
-
-    // get key type from openssl
-    if ((key_type = get_key_type(pkey) == -1))
-        return 0;
-
-    // type field and selects the digest to compute the signature
-    switch (key_type)
-    {
-    case RsaVerificationKey2023:
-        ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
-        md_name = (char *)malloc(10);
-        strcpy(md_name, "SHA256");
-        break;
-    case EcdsaSecp256r1VerificationKey2023:
-        ctx->proof.type.p = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
-        md_name = (char *)malloc(10);
-        strcpy(md_name, "SHA256");
-        break;
-    case Ed25519VerificationKey2023:
-        ctx->proof.type.p = OPENSSL_strdup("Ed25519VerificationKey2023");
-        break;
-    default:
-        printf("Unrecognised key type\n");
-        return 0;
-    }
-
-    if (!compute_sig(md_name, pkey, tbs, &ctx->proof.value.p))
-        return 0;
-
-    return 1;
-}
-*/
 
 int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
 {
@@ -216,7 +131,7 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
             fprintf(stderr, "Error before: %s\n", error_ptr);
         }
 
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // atContext
@@ -226,11 +141,11 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     if (cJSON_IsString(atContext) && atContext->valuestring != NULL)
     {
         ctx->atContext.len = strlen(atContext->valuestring);
-        ctx->atContext.p = (unsigned char *)strdup(atContext->valuestring);
+        ctx->atContext.p = OPENSSL_strdup(atContext->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // id
@@ -239,11 +154,11 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     if (cJSON_IsString(id_cJSON) && id_cJSON->valuestring != NULL)
     {
         ctx->id.len = strlen(id_cJSON->valuestring);
-        ctx->id.p = (unsigned char *)strdup(id_cJSON->valuestring);
+        ctx->id.p = OPENSSL_strdup(id_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // type
@@ -252,11 +167,11 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL)
     {
         ctx->type.len = strlen(type_cJSON->valuestring);
-        ctx->type.p = (unsigned char *)strdup(type_cJSON->valuestring);
+        ctx->type.p = OPENSSL_strdup(type_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // issuer
@@ -265,11 +180,11 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     if (cJSON_IsString(issuer_cJSON) && issuer_cJSON->valuestring != NULL)
     {
         ctx->issuer.len = strlen(issuer_cJSON->valuestring);
-        ctx->issuer.p = (unsigned char *)strdup(issuer_cJSON->valuestring);
+        ctx->issuer.p = OPENSSL_strdup(issuer_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // issuance date
@@ -278,11 +193,11 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     if (cJSON_IsString(issDate_cJSON) && issDate_cJSON->valuestring != NULL)
     {
         ctx->issuanceDate.len = strlen(issDate_cJSON->valuestring);
-        ctx->issuanceDate.p = (unsigned char *)strdup(issDate_cJSON->valuestring);
+        ctx->issuanceDate.p = OPENSSL_strdup(issDate_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // expiration date
@@ -291,11 +206,11 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     if (cJSON_IsString(expDate_cJSON) && expDate_cJSON->valuestring != NULL)
     {
         ctx->expirationDate.len = strlen(expDate_cJSON->valuestring);
-        ctx->expirationDate.p = (unsigned char *)strdup(expDate_cJSON->valuestring);
+        ctx->expirationDate.p = OPENSSL_strdup(expDate_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // credential subject
@@ -305,17 +220,17 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     subject_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "credentialSubject");
     if (subject_cJSON == NULL || !cJSON_IsObject(subject_cJSON))
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
     subject_id_cJSON = cJSON_GetObjectItemCaseSensitive(subject_cJSON, "id");
     if (cJSON_IsString(subject_id_cJSON) && subject_id_cJSON->valuestring != NULL)
     {
         ctx->credentialSubject.id.len = strlen(subject_id_cJSON->valuestring);
-        ctx->credentialSubject.id.p = (unsigned char *)strdup(subject_id_cJSON->valuestring);
+        ctx->credentialSubject.id.p = OPENSSL_strdup(subject_id_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     // proof
@@ -330,67 +245,70 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     proof_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "proof");
     if (proof_cJSON == NULL || !cJSON_IsObject(proof_cJSON))
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     proof_type_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "type");
     if (cJSON_IsString(proof_type_cJSON) && proof_type_cJSON->valuestring != NULL)
     {
         ctx->proof.type.len = strlen(proof_type_cJSON->valuestring);
-        ctx->proof.type.p = (unsigned char *)strdup(proof_type_cJSON->valuestring);
+        ctx->proof.type.p = OPENSSL_strdup(proof_type_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     proof_created_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "created");
     if (cJSON_IsString(proof_created_cJSON) && proof_created_cJSON->valuestring != NULL)
     {
         ctx->proof.created.len = strlen(proof_created_cJSON->valuestring);
-        ctx->proof.created.p = (unsigned char *)strdup(proof_created_cJSON->valuestring);
+        ctx->proof.created.p = OPENSSL_strdup(proof_created_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     proof_purpose_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "proofPurpose");
     if (cJSON_IsString(proof_purpose_cJSON) && proof_purpose_cJSON->valuestring != NULL)
     {
         ctx->proof.purpose.len = strlen(proof_purpose_cJSON->valuestring);
-        ctx->proof.purpose.p = (unsigned char *)strdup(proof_purpose_cJSON->valuestring);
+        ctx->proof.purpose.p = OPENSSL_strdup(proof_purpose_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     proof_vmethod_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "verificationMethod");
     if (cJSON_IsString(proof_vmethod_cJSON) && proof_vmethod_cJSON->valuestring != NULL)
     {
         ctx->proof.verificationMethod.len = strlen(proof_vmethod_cJSON->valuestring);
-        ctx->proof.verificationMethod.p = (unsigned char *)strdup(proof_vmethod_cJSON->valuestring);
+        ctx->proof.verificationMethod.p = OPENSSL_strdup(proof_vmethod_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     proof_value_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "proofValue");
     if (cJSON_IsString(proof_value_cJSON) && proof_value_cJSON->valuestring != NULL)
     {
         ctx->proof.value.len = strlen(proof_value_cJSON->valuestring);
-        ctx->proof.value.p = (unsigned char *)strdup(proof_value_cJSON->valuestring);
+        ctx->proof.value.p = OPENSSL_strdup(proof_value_cJSON->valuestring);
     }
     else
     {
-        return VC_PARSE_ERROR;
+        goto fail;
     }
 
     cJSON_Delete(vc_json);
-
     return 1;
+
+fail:
+    cJSON_Delete(vc_json);
+    return 0;
 }
 
 /* fill the metadata and claim section of the VC */
@@ -444,8 +362,6 @@ int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
     cJSON_AddStringToObject(cSubject, "id", ctx->credentialSubject.id.p);
     cJSON_AddItemToObject(vc, "credentialSubject", cSubject);
 
-    printf("%s\n", cJSON_Print(vc));
-
     return 1;
 
 fail:
@@ -471,10 +387,6 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
         // get the data to be signed
         char *tbs = cJSON_Print(vc);
 
-        // get key type from openssl
-        /*if ((key_type = get_key_type(pkey) == -1))
-            goto fail;*/
-
         key_type = get_key_type(pkey);
         // type field and selects the digest to compute the signature
         switch (key_type)
@@ -497,8 +409,12 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
             goto fail;
         }
 
-        if (!compute_sig(md_name, pkey, key_type, tbs, &ctx->proof.value.p))
+        if (!compute_sig(md_name, pkey, key_type, tbs, &ctx->proof.value.p)){
+            free(md_name);
             goto fail;
+        }
+        
+        free(md_name);
     }
 
     // type
@@ -507,7 +423,7 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     // created
     if (ctx->proof.created.p == NULL)
     {
-        ctx->proof.created.p = (char *)malloc(100);
+        ctx->proof.created.p = (char *)OPENSSL_zalloc(100);
         time_t now = time(0);
         strftime(ctx->proof.created.p, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
     }
@@ -528,7 +444,6 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 
     cJSON_AddItemToObject(vc, "proof", proof);
 
-    //cJSON_Delete(proof);
     return 1;
 
 fail:
@@ -576,9 +491,6 @@ int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     char *tbs = cJSON_Print(vc);
 
     // get key type from openssl
-    /*if ((key_type = get_key_type(pkey) == -1))
-        return 0;*/
-
     key_type = get_key_type(pkey);
 
     // type field and selects the digest to compute the signature
@@ -602,8 +514,10 @@ int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
         return 0;
     }
 
-    if (!verify_sig(md_name, pkey, key_type, tbs, ctx->proof.value.p))
+    if (!verify_sig(md_name, pkey, key_type, tbs, ctx->proof.value.p)){
+        free(md_name);
         return 0;
+    }
 
     return 1;
 }

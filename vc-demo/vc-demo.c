@@ -12,8 +12,6 @@ static int get_key_type(EVP_PKEY *key)
 {
     int ret = 0;
     ret = EVP_PKEY_get_id(key);
-    // printf("key type %d\n", ret);
-    // const char * name1 = EVP_PKEY_get0_type_name(key2);
     switch (ret)
     {
     case EVP_PKEY_RSA:
@@ -113,8 +111,10 @@ int main()
     }
 
     for(i = 0; i < strlen(vc); i++){
+        printf("%c", vc[i]);
         fputc(vc[i], fp_vc);
     }
+    printf("\n");
     fclose(fp_vc);
 
 err:

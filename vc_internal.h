@@ -6,15 +6,10 @@
 #define VC_TYPE                "VerifiableCredential"
 #define VC_PURPOSE             "assertionMethod"
 
-#define VC_PARSE_OK             1
-#define VC_PARSE_ERROR          -10
-#define VC_PRINT_OK             1
-#define VC_PRINT_ERROR          -20
-
 #define MAX_VC_FIELD            1000
 
 typedef struct vc_buf {
-    unsigned char *p;
+    char *p;
     size_t len;
 } vc_buf;
 

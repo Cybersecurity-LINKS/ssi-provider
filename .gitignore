@@ -61,7 +61,7 @@ channel.txt
 # did-demo folder
 did-emo/.idea/
 did-demo/*.txt
-did-demo/demo
+did-demo/did-demo
 did-demo/*.pem
 
 # vc-demo folder
