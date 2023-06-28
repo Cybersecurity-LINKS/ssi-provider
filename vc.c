@@ -40,76 +40,76 @@ void vc_freectx(void *vcctx)
 
     if (ctx != NULL)
     {
-        if (ctx->atContext.p != NULL)
+        if (ctx->atContext != NULL)
         {
-            OPENSSL_free(ctx->atContext.p);
-            ctx->atContext.p = NULL;
+            OPENSSL_free(ctx->atContext);
+            ctx->atContext = NULL;
         }
 
-        if (ctx->id.p != NULL)
+        if (ctx->id != NULL)
         {
-            OPENSSL_free(ctx->id.p);
-            ctx->id.p = NULL;
+            OPENSSL_free(ctx->id);
+            ctx->id = NULL;
         }
 
-        if (ctx->type.p != NULL)
+        if (ctx->type != NULL)
         {
-            OPENSSL_free(ctx->type.p);
-            ctx->id.p = NULL;
+            OPENSSL_free(ctx->type);
+            ctx->id = NULL;
         }
 
-        if (ctx->issuer.p != NULL)
+        if (ctx->issuer != NULL)
         {
-            OPENSSL_free(ctx->issuer.p);
-            ctx->issuer.p = NULL;
+            OPENSSL_free(ctx->issuer);
+            ctx->issuer = NULL;
         }
 
-        if (ctx->issuanceDate.p != NULL)
+        if (ctx->issuanceDate != NULL)
         {
-            OPENSSL_free(ctx->issuanceDate.p);
-            ctx->issuanceDate.p = NULL;
+            OPENSSL_free(ctx->issuanceDate);
+            ctx->issuanceDate = NULL;
         }
 
-        if (ctx->expirationDate.p != NULL)
+        if (ctx->expirationDate != NULL)
         {
-            OPENSSL_free(ctx->expirationDate.p);
-            ctx->expirationDate.p = NULL;
+            OPENSSL_free(ctx->expirationDate);
+            ctx->expirationDate = NULL;
         }
 
-        if (ctx->credentialSubject.id.p != NULL)
+        if (ctx->credentialSubject.id != NULL)
         {
-            OPENSSL_free(ctx->credentialSubject.id.p);
-            ctx->credentialSubject.id.p = NULL;
+            OPENSSL_free(ctx->credentialSubject.id);
+            ctx->credentialSubject.id = NULL;
         }
 
-        if (ctx->proof.type.p != NULL)
+        if (ctx->proof.type != NULL)
         {
-            OPENSSL_free(ctx->proof.type.p);
-            ctx->proof.type.p = NULL;
+            OPENSSL_free(ctx->proof.type);
+            ctx->proof.type = NULL;
         }
 
-        if (ctx->proof.created.p != NULL)
+        if (ctx->proof.created != NULL)
         {
-            OPENSSL_free(ctx->proof.created.p);
-            ctx->proof.type.p = NULL;
+            OPENSSL_free(ctx->proof.created);
+            ctx->proof.created = NULL;
         }
 
-        if (ctx->proof.purpose.p != NULL)
+        if (ctx->proof.purpose != NULL)
         {
-            OPENSSL_free(ctx->proof.purpose.p);
-            ctx->proof.type.p = NULL;
+            OPENSSL_free(ctx->proof.purpose);
+            ctx->proof.purpose = NULL;
         }
 
-        if (ctx->proof.verificationMethod.p != NULL)
+        if (ctx->proof.verificationMethod != NULL)
         {
-            OPENSSL_free(ctx->proof.verificationMethod.p);
-            ctx->proof.type.p = NULL;
+            OPENSSL_free(ctx->proof.verificationMethod);
+            ctx->proof.verificationMethod = NULL;
         }
 
-        if (ctx->proof.value.p != NULL)
+        if (ctx->proof.value != NULL)
         {
-            OPENSSL_free(ctx->proof.value.p);
-            ctx->proof.type.p = NULL;
+            OPENSSL_free(ctx->proof.value);
+            ctx->proof.value = NULL;
         }
     }
 }
@@ -127,8 +127,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
 
     /* Fill ctx with metadata and claims. Some fields are
     retrieved from params[], some other are generated on the fly. */
-    ctx->atContext.p = OPENSSL_strdup(CONTEXT_VC_V1);
-    ctx->atContext.len = strlen(ctx->atContext.p);
+    ctx->atContext = OPENSSL_strdup(CONTEXT_VC_V1);
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ID);
     if (p != NULL)
@@ -136,13 +135,11 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->id.p = OPENSSL_strdup(str);
-        ctx->id.len = strlen(str);
+        ctx->id = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
-    ctx->type.p = OPENSSL_strdup(VC_TYPE);
-    ctx->type.len = strlen(ctx->type.p);
+    ctx->type = OPENSSL_strdup(VC_TYPE);
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUER);
     if (p != NULL)
@@ -150,15 +147,13 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->issuer.p = OPENSSL_strdup(str);
-        ctx->issuer.len = strlen(str);
+        ctx->issuer = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
     time_t now = time(0);
-    ctx->issuanceDate.p = (char *)OPENSSL_zalloc(100);
-    strftime(ctx->issuanceDate.p, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
-    ctx->issuanceDate.len = strlen(ctx->issuanceDate.p);
+    ctx->issuanceDate = (char *)OPENSSL_zalloc(100);
+    strftime(ctx->issuanceDate, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
     if (p != NULL)
@@ -166,8 +161,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->expirationDate.p = OPENSSL_strdup(str);
-        ctx->expirationDate.len = strlen(str);
+        ctx->expirationDate = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -177,8 +171,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->credentialSubject.id.p = OPENSSL_strdup(str);
-        ctx->credentialSubject.id.len = strlen(str);
+        ctx->credentialSubject.id = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -196,8 +189,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->proof.verificationMethod.p = OPENSSL_strdup(str);
-        ctx->proof.verificationMethod.len = strlen(str);
+        ctx->proof.verificationMethod = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -238,8 +230,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->atContext.p = OPENSSL_strdup(str);
-        ctx->atContext.len = strlen(str);
+        ctx->atContext = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -249,8 +240,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->id.p = OPENSSL_strdup(str);
-        ctx->id.len = strlen(str);
+        ctx->id = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -260,8 +250,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->type.p = OPENSSL_strdup(str);
-        ctx->type.len = strlen(str);
+        ctx->type = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -271,8 +260,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->issuer.p = OPENSSL_strdup(str);
-        ctx->issuer.len = strlen(str);
+        ctx->issuer = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -282,8 +270,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->issuanceDate.p = OPENSSL_strdup(str);
-        ctx->issuanceDate.len = strlen(str);
+        ctx->issuanceDate = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -293,8 +280,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->expirationDate.p = OPENSSL_strdup(str);
-        ctx->expirationDate.len = strlen(str);
+        ctx->expirationDate = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -304,8 +290,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->credentialSubject.id.p = OPENSSL_strdup(str);
-        ctx->credentialSubject.id.len = strlen(str);
+        ctx->credentialSubject.id = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -315,8 +300,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
-        ctx->proof.value.p = OPENSSL_strdup(str);
-        ctx->proof.value.len = strlen(str);
+        ctx->proof.value = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -353,9 +337,10 @@ int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
     if (!vc_cjson_parse(ctx, vc_stream))
         return 0;
 
-    if (ctx->atContext.p == NULL || ctx->id.p == NULL || ctx->type.p == NULL || ctx->issuer.p == NULL || ctx->issuanceDate.p == NULL || ctx->expirationDate.p == NULL || ctx->credentialSubject.id.p == NULL ||
-        ctx->proof.type.p == NULL || ctx->proof.created.p == NULL || ctx->proof.purpose.p == NULL ||
-        ctx->proof.verificationMethod.p == NULL || ctx->proof.value.p == NULL)
+    if (ctx->atContext == NULL || ctx->id == NULL || ctx->type == NULL || ctx->issuer == NULL || ctx->issuanceDate == NULL 
+        || ctx->expirationDate == NULL || ctx->credentialSubject.id == NULL ||
+        ctx->proof.type == NULL || ctx->proof.created == NULL || ctx->proof.purpose == NULL ||
+        ctx->proof.verificationMethod == NULL || ctx->proof.value == NULL)
         return 0;
 
     /* return the fields of the VC through params[] */
@@ -419,8 +404,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->atContext.p = OPENSSL_strdup(str);
-        ctx->atContext.len = strlen(str);
+        ctx->atContext = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -430,8 +414,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->id.p = OPENSSL_strdup(str);
-        ctx->id.len = strlen(str);
+        ctx->id = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -441,8 +424,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->type.p = OPENSSL_strdup(str);
-        ctx->type.len = strlen(str);
+        ctx->type = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -452,8 +434,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->issuer.p = OPENSSL_strdup(str);
-        ctx->issuer.len = strlen(str);
+        ctx->issuer = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -463,8 +444,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->issuanceDate.p = OPENSSL_strdup(str);
-        ctx->issuanceDate.len = strlen(str);
+        ctx->issuanceDate = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -474,8 +454,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->expirationDate.p = OPENSSL_strdup(str);
-        ctx->expirationDate.len = strlen(str);
+        ctx->expirationDate = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -485,8 +464,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->credentialSubject.id.p = OPENSSL_strdup(str);
-        ctx->credentialSubject.id.len = strlen(str);
+        ctx->credentialSubject.id = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -496,8 +474,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->proof.type.p = OPENSSL_strdup(str);
-        ctx->proof.type.len = strlen(str);
+        ctx->proof.type = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -507,8 +484,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->proof.created.p = OPENSSL_strdup(str);
-        ctx->proof.created.len = strlen(str);
+        ctx->proof.created = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -518,8 +494,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->proof.purpose.p = OPENSSL_strdup(str);
-        ctx->proof.purpose.len = strlen(str);
+        ctx->proof.purpose = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -529,8 +504,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->proof.verificationMethod.p = OPENSSL_strdup(str);
-        ctx->proof.verificationMethod.len = strlen(str);
+        ctx->proof.verificationMethod = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -540,8 +514,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
-        ctx->proof.value.p = OPENSSL_strdup(str);
-        ctx->proof.value.len = strlen(str);
+        ctx->proof.value = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -560,51 +533,51 @@ int vc_get_ctx_params(void *vcctx, OSSL_PARAM params[])
         return 1;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_CONTEXT);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->atContext.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->atContext))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ID);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->id.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->id))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_TYPE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->type.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->type))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ISSUER);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->issuer.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->issuer))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_ISSUANCE_DATE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->issuanceDate.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->issuanceDate))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_EXPIRATION_DATE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->expirationDate.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->expirationDate))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_SUBJECT);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->credentialSubject.id.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->credentialSubject.id))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_TYPE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.type.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.type))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_CREATED);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.created.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.created))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_PURPOSE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.purpose.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.purpose))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_VERIFICATION_METHOD);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.verificationMethod.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.verificationMethod))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_VC_PARAM_PROOF_VALUE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.value.p))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->proof.value))
         return 0;
 
     return 1;

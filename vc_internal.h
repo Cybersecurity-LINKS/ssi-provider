@@ -8,30 +8,25 @@
 
 #define MAX_VC_FIELD            1000
 
-typedef struct vc_buf {
-    char *p;
-    size_t len;
-} vc_buf;
-
 typedef struct c_subj {
-    vc_buf id;
+    char* id;
 } c_subj;
 
 typedef struct proof {
-    vc_buf type;
-    vc_buf created;
-    vc_buf purpose;
-    vc_buf verificationMethod;
-    vc_buf value;
+    char* type;
+    char* created;
+    char* purpose;
+    char* verificationMethod;
+    char* value;
 } proof;
 
 typedef struct verifiable_credential {
-    vc_buf atContext;
-    vc_buf id;
-    vc_buf type;
-    vc_buf issuer;
-    vc_buf issuanceDate;
-    vc_buf expirationDate;
+    char* atContext;
+    char* id;
+    char* type;
+    char* issuer;
+    char* issuanceDate;
+    char* expirationDate;
     c_subj credentialSubject; 
     proof proof;
 } VC_CTX;

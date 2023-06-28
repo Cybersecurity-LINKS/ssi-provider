@@ -139,79 +139,49 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
     atContext = cJSON_GetObjectItemCaseSensitive(vc_json, "@context");
 
     if (cJSON_IsString(atContext) && atContext->valuestring != NULL)
-    {
-        ctx->atContext.len = strlen(atContext->valuestring);
-        ctx->atContext.p = OPENSSL_strdup(atContext->valuestring);
-    }
+        ctx->atContext = OPENSSL_strdup(atContext->valuestring);
     else
-    {
         goto fail;
-    }
 
     // id
     const cJSON *id_cJSON = NULL;
     id_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "id");
     if (cJSON_IsString(id_cJSON) && id_cJSON->valuestring != NULL)
-    {
-        ctx->id.len = strlen(id_cJSON->valuestring);
-        ctx->id.p = OPENSSL_strdup(id_cJSON->valuestring);
-    }
+        ctx->id = OPENSSL_strdup(id_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     // type
     const cJSON *type_cJSON = NULL;
     type_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "type");
     if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL)
-    {
-        ctx->type.len = strlen(type_cJSON->valuestring);
-        ctx->type.p = OPENSSL_strdup(type_cJSON->valuestring);
-    }
+        ctx->type = OPENSSL_strdup(type_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     // issuer
     const cJSON *issuer_cJSON = NULL;
     issuer_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "issuer");
     if (cJSON_IsString(issuer_cJSON) && issuer_cJSON->valuestring != NULL)
-    {
-        ctx->issuer.len = strlen(issuer_cJSON->valuestring);
-        ctx->issuer.p = OPENSSL_strdup(issuer_cJSON->valuestring);
-    }
+        ctx->issuer = OPENSSL_strdup(issuer_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     // issuance date
     const cJSON *issDate_cJSON = NULL;
     issDate_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "issuanceDate");
     if (cJSON_IsString(issDate_cJSON) && issDate_cJSON->valuestring != NULL)
-    {
-        ctx->issuanceDate.len = strlen(issDate_cJSON->valuestring);
-        ctx->issuanceDate.p = OPENSSL_strdup(issDate_cJSON->valuestring);
-    }
+        ctx->issuanceDate = OPENSSL_strdup(issDate_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     // expiration date
     const cJSON *expDate_cJSON = NULL;
     expDate_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "expirationDate");
     if (cJSON_IsString(expDate_cJSON) && expDate_cJSON->valuestring != NULL)
-    {
-        ctx->expirationDate.len = strlen(expDate_cJSON->valuestring);
-        ctx->expirationDate.p = OPENSSL_strdup(expDate_cJSON->valuestring);
-    }
+        ctx->expirationDate = OPENSSL_strdup(expDate_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     // credential subject
     const cJSON *subject_cJSON = NULL;
@@ -219,19 +189,13 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
 
     subject_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "credentialSubject");
     if (subject_cJSON == NULL || !cJSON_IsObject(subject_cJSON))
-    {
         goto fail;
-    }
+
     subject_id_cJSON = cJSON_GetObjectItemCaseSensitive(subject_cJSON, "id");
     if (cJSON_IsString(subject_id_cJSON) && subject_id_cJSON->valuestring != NULL)
-    {
-        ctx->credentialSubject.id.len = strlen(subject_id_cJSON->valuestring);
-        ctx->credentialSubject.id.p = OPENSSL_strdup(subject_id_cJSON->valuestring);
-    }
+        ctx->credentialSubject.id = OPENSSL_strdup(subject_id_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     // proof
     const cJSON *proof_cJSON = NULL;
@@ -244,64 +208,38 @@ int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
 
     proof_cJSON = cJSON_GetObjectItemCaseSensitive(vc_json, "proof");
     if (proof_cJSON == NULL || !cJSON_IsObject(proof_cJSON))
-    {
         goto fail;
-    }
 
     proof_type_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "type");
     if (cJSON_IsString(proof_type_cJSON) && proof_type_cJSON->valuestring != NULL)
-    {
-        ctx->proof.type.len = strlen(proof_type_cJSON->valuestring);
-        ctx->proof.type.p = OPENSSL_strdup(proof_type_cJSON->valuestring);
-    }
+        ctx->proof.type = OPENSSL_strdup(proof_type_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     proof_created_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "created");
     if (cJSON_IsString(proof_created_cJSON) && proof_created_cJSON->valuestring != NULL)
-    {
-        ctx->proof.created.len = strlen(proof_created_cJSON->valuestring);
-        ctx->proof.created.p = OPENSSL_strdup(proof_created_cJSON->valuestring);
-    }
+        ctx->proof.created = OPENSSL_strdup(proof_created_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     proof_purpose_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "proofPurpose");
     if (cJSON_IsString(proof_purpose_cJSON) && proof_purpose_cJSON->valuestring != NULL)
-    {
-        ctx->proof.purpose.len = strlen(proof_purpose_cJSON->valuestring);
-        ctx->proof.purpose.p = OPENSSL_strdup(proof_purpose_cJSON->valuestring);
-    }
+        ctx->proof.purpose = OPENSSL_strdup(proof_purpose_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
+    
 
     proof_vmethod_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "verificationMethod");
     if (cJSON_IsString(proof_vmethod_cJSON) && proof_vmethod_cJSON->valuestring != NULL)
-    {
-        ctx->proof.verificationMethod.len = strlen(proof_vmethod_cJSON->valuestring);
-        ctx->proof.verificationMethod.p = OPENSSL_strdup(proof_vmethod_cJSON->valuestring);
-    }
+        ctx->proof.verificationMethod = OPENSSL_strdup(proof_vmethod_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     proof_value_cJSON = cJSON_GetObjectItemCaseSensitive(proof_cJSON, "proofValue");
     if (cJSON_IsString(proof_value_cJSON) && proof_value_cJSON->valuestring != NULL)
-    {
-        ctx->proof.value.len = strlen(proof_value_cJSON->valuestring);
-        ctx->proof.value.p = OPENSSL_strdup(proof_value_cJSON->valuestring);
-    }
+        ctx->proof.value = OPENSSL_strdup(proof_value_cJSON->valuestring);
     else
-    {
         goto fail;
-    }
 
     cJSON_Delete(vc_json);
     return 1;
@@ -316,37 +254,37 @@ int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
 {
 
     //@context
-    if (cJSON_AddStringToObject(vc, "@context", ctx->atContext.p) == NULL)
+    if (cJSON_AddStringToObject(vc, "@context", ctx->atContext) == NULL)
     {
         goto fail;
     }
 
     // id
-    if (cJSON_AddStringToObject(vc, "id", ctx->id.p) == NULL)
+    if (cJSON_AddStringToObject(vc, "id", ctx->id) == NULL)
     {
         goto fail;
     }
 
     // type
-    if (cJSON_AddStringToObject(vc, "type", ctx->type.p) == NULL)
+    if (cJSON_AddStringToObject(vc, "type", ctx->type) == NULL)
     {
         goto fail;
     }
 
     // issuer
-    if (cJSON_AddStringToObject(vc, "issuer", ctx->issuer.p) == NULL)
+    if (cJSON_AddStringToObject(vc, "issuer", ctx->issuer) == NULL)
     {
         goto fail;
     }
 
     // issuanceDate
-    if (cJSON_AddStringToObject(vc, "issuanceDate", ctx->issuanceDate.p) == NULL)
+    if (cJSON_AddStringToObject(vc, "issuanceDate", ctx->issuanceDate) == NULL)
     {
         goto fail;
     }
 
     // expirationDate
-    if (cJSON_AddStringToObject(vc, "expirationDate", ctx->expirationDate.p) == NULL)
+    if (cJSON_AddStringToObject(vc, "expirationDate", ctx->expirationDate) == NULL)
     {
         goto fail;
     }
@@ -359,7 +297,7 @@ int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
         goto fail;
     }
 
-    cJSON_AddStringToObject(cSubject, "id", ctx->credentialSubject.id.p);
+    cJSON_AddStringToObject(cSubject, "id", ctx->credentialSubject.id);
     cJSON_AddItemToObject(vc, "credentialSubject", cSubject);
 
     return 1;
@@ -392,24 +330,24 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
         switch (key_type)
         {
         case RsaVerificationKey2023:
-            ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
+            ctx->proof.type = OPENSSL_strdup("RsaVerificationKey2023");
             md_name = (char *)malloc(10);
             strcpy(md_name, "SHA256");
             break;
         case EcdsaSecp256r1VerificationKey2023:
-            ctx->proof.type.p = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
+            ctx->proof.type = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
             md_name = (char *)malloc(10);
             strcpy(md_name, "SHA256");
             break;
         case Ed25519VerificationKey2023:
-            ctx->proof.type.p = OPENSSL_strdup("Ed25519VerificationKey2023");
+            ctx->proof.type = OPENSSL_strdup("Ed25519VerificationKey2023");
             break;
         default:
             printf("Unrecognised key type\n");
             goto fail;
         }
 
-        if (!compute_sig(md_name, pkey, key_type, tbs, &ctx->proof.value.p)){
+        if (!compute_sig(md_name, pkey, key_type, tbs, &ctx->proof.value)){
             free(md_name);
             goto fail;
         }
@@ -418,29 +356,29 @@ int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     }
 
     // type
-    cJSON_AddStringToObject(proof, "type", ctx->proof.type.p);
+    cJSON_AddStringToObject(proof, "type", ctx->proof.type);
 
     // created
-    if (ctx->proof.created.p == NULL)
+    if (ctx->proof.created == NULL)
     {
-        ctx->proof.created.p = (char *)OPENSSL_zalloc(100);
+        ctx->proof.created = (char *)OPENSSL_zalloc(100);
         time_t now = time(0);
-        strftime(ctx->proof.created.p, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+        strftime(ctx->proof.created, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
     }
-    cJSON_AddStringToObject(proof, "created", ctx->proof.created.p);
+    cJSON_AddStringToObject(proof, "created", ctx->proof.created);
 
     // purpose
-    if (ctx->proof.purpose.p == NULL)
+    if (ctx->proof.purpose == NULL)
     {
-        ctx->proof.purpose.p = OPENSSL_strdup(VC_PURPOSE);
+        ctx->proof.purpose = OPENSSL_strdup(VC_PURPOSE);
     }
-    cJSON_AddStringToObject(proof, "proofPurpose", ctx->proof.purpose.p);
+    cJSON_AddStringToObject(proof, "proofPurpose", ctx->proof.purpose);
 
     // verification method
-    cJSON_AddStringToObject(proof, "verificationMethod", ctx->proof.verificationMethod.p);
+    cJSON_AddStringToObject(proof, "verificationMethod", ctx->proof.verificationMethod);
 
     // value
-    cJSON_AddStringToObject(proof, "proofValue", ctx->proof.value.p);
+    cJSON_AddStringToObject(proof, "proofValue", ctx->proof.value);
 
     cJSON_AddItemToObject(vc, "proof", proof);
 
@@ -459,25 +397,25 @@ int vc_validate(VC_CTX *ctx)
     strftime(curr_time, 50, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     /* the issuance date MUSTs be less then current time */
-    if (ctx->issuanceDate.p == NULL || strcmp(ctx->issuanceDate.p, curr_time) > 0)
+    if (ctx->issuanceDate == NULL || strcmp(ctx->issuanceDate, curr_time) > 0)
         return 0;
 
     /* the expiration date MUST be greater then current time */ 
-    if (ctx->expirationDate.p != NULL && strcmp(ctx->expirationDate.p, curr_time) < 0)
+    if (ctx->expirationDate != NULL && strcmp(ctx->expirationDate, curr_time) < 0)
         return 0;
 
     /* @context MUST be equal to "https://www.w3.org/2018/credentials/v1" */
-    if (ctx->atContext.p == NULL || strcmp(ctx->atContext.p, CONTEXT_VC_V1) != 0)
+    if (ctx->atContext == NULL || strcmp(ctx->atContext, CONTEXT_VC_V1) != 0)
         return 0;
 
     /* credentail type MUST be "VerifiableCredential" */
-    if (ctx->type.p == NULL || strcmp(ctx->type.p, VC_TYPE) != 0)
+    if (ctx->type == NULL || strcmp(ctx->type, VC_TYPE) != 0)
         return 0;
 
     /* credential subjcet MUST be not null*/
-    if (ctx->credentialSubject.id.p == NULL || strlen(ctx->credentialSubject.id.p) == 0)
+    if (ctx->credentialSubject.id == NULL || strlen(ctx->credentialSubject.id) == 0)
         return 0;
-
+    
     return 1;
 }
 
@@ -497,24 +435,24 @@ int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
     switch(key_type)
     {
     case RsaVerificationKey2023:
-        ctx->proof.type.p = OPENSSL_strdup("RsaVerificationKey2023");
+        ctx->proof.type = OPENSSL_strdup("RsaVerificationKey2023");
         md_name = (char *)malloc(10);
         strcpy(md_name, "SHA256");
         break;
     case EcdsaSecp256r1VerificationKey2023:
-        ctx->proof.type.p = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
+        ctx->proof.type = OPENSSL_strdup("EcdsaSecp256r1VerificationKey2023");
         md_name = (char *)malloc(10);
         strcpy(md_name, "SHA256");
         break;
     case Ed25519VerificationKey2023:
-        ctx->proof.type.p = OPENSSL_strdup("Ed25519VerificationKey2023");
+        ctx->proof.type = OPENSSL_strdup("Ed25519VerificationKey2023");
         break;
     default:
         printf("Unrecognised key type\n");
         return 0;
     }
 
-    if (!verify_sig(md_name, pkey, key_type, tbs, ctx->proof.value.p)){
+    if (!verify_sig(md_name, pkey, key_type, tbs, ctx->proof.value)){
         free(md_name);
         return 0;
     }
