@@ -457,5 +457,6 @@ int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
         return 0;
     }
 
+    free(md_name);
     return 1;
 }

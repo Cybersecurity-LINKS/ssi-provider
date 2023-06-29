@@ -25,12 +25,12 @@ uint16_t get_messages_number(uint16_t len);
 uint8_t reset_index(IOTA_Index* index);
 uint8_t copy_iota_index(IOTA_Index* dstIndex, IOTA_Index* srcIndex);
 bool is_null_index(uint8_t* idx);
-uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2);
+uint8_t generate_iota_index(OTT_channel* channel);
 uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_size);
 uint8_t convert_ott_endpoint(IOTA_Endpoint* ott_ep, iota_client_conf_t *ep);
 uint8_t find_ott_msg(find_msg_t* msg_id_list, OTT_channel* channel, uint8_t* msg, uint16_t* msg_len);
 uint8_t is_ott_valid_msg(uint8_t* msg, uint16_t* msg_len, OTT_channel* channel);
-uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, bool finalize);
+uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, uint8_t* anchor);
 uint8_t get_msg_from_id(OTT_channel* channel, char* msg_id, res_message_t* response_info, uint8_t* msg_bin, uint16_t* msg_bin_len);
 uint8_t get_msg_id_list(OTT_channel* channel, res_find_msg_t* response_info, find_msg_t** list, uint32_t *list_len);
 uint8_t sign_hash_check(uint8_t* data, uint16_t data_len, uint8_t* recv_sign, uint8_t* recv_pubk);
@@ -40,13 +40,15 @@ void print_raw_hex(uint8_t* array, uint16_t array_len);
 uint8_t OTT_write_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint* endpoint) {
 	if((channel == NULL) || (endpoint == NULL)) return OTT_ERR_NULL; 
 	if(id < 0) return OTT_ERR_CH_INIT;
-
+	uint8_t ret;
 	// Clear buffers
 	memset(channel->buff_hex_data, 0, IOTA_MAX_MSG_SIZE);
 	memset(channel->buff_hex_index, 0, INDEX_HEX_SIZE);
 	
-	// Init Indexes
-	generate_iota_index(&(channel->first_index), &(channel->second_index));
+	// Init Keypair and Index
+	ret = generate_iota_index(channel);
+	if(ret != OTT_OK)
+		return ret;
 
 	// Set fields
 	channel->id = id;
@@ -74,12 +76,14 @@ uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint* 
 	channel->recv_msg = 0;
 	channel->sent_bytes = 0;
 	channel->recv_bytes = 0;
-	
+	channel->number_ott_msg = 0;
+	channel->revoked = 0;
+	channel->valid_msg_found = 0;
 	return(OTT_OK);
 }
 
 uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) {
-	uint8_t msg_to_read[OTT_MSG_SIZE]; uint16_t msg_len = 0;
+	uint8_t msg_to_read[OTT_CREATE_MSG_SIZE]; uint16_t msg_len = 0;
 	uint16_t i = 0, expected_size = *outDataSize;
 	find_msg_t* msg_id_list = NULL; uint32_t msg_id_list_len = 0;
 	size_t s = 0; //, recv_data = 0;
@@ -96,16 +100,23 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 		return OTT_NOT_FOUND;
 	}	
 
+	//printf("Recieved %d msgs\n", msg_id_list_len);
+	channel->number_ott_msg = msg_id_list_len;
 	for(i = 0; i < msg_id_list_len; i++) {
 		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
 		// leggi lista msg_id at channel->read_index  <= response, count, LISTA
 		response_msg = res_message_new();
 		if(get_msg_from_id(channel, *msg_id, response_msg, msg_to_read, &msg_len) == OTT_OK) {
 			ret = is_ott_valid_msg(msg_to_read, &msg_len, channel);
-			if(ret == OTT_REVOKE){
+/* 			if(ret == OTT_ERR_CRYPTO_SIGN){
+				printf("Invalid sign\n");
+			} else if(ret == OTT_OK){
+				printf("Valid msg\n");
+			} */
+ 			if(ret == OTT_REVOKE && channel->valid_msg_found == 1 ){
 				res_message_free(response_msg);
 				return(ret);
-			}
+			} 
 		}
 		else{
 			res_message_free(response_msg);
@@ -132,183 +143,169 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
     return ret;
 }
 
-
-/* uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) {
-	uint8_t msg_to_read[OTT_MSG_SIZE]; uint16_t msg_len = 0;
-	uint16_t i = 0, messages = 0, expected_size = *outDataSize;
-	find_msg_t* msg_id_list = NULL; uint32_t msg_id_list_len = 0;
-	size_t s = 0; //, recv_data = 0;
-	//uint8_t* d = outData;
-	res_find_msg_t* response;
-    uint8_t ret = 0;
-
-	if((channel == NULL) || (outData == NULL)) return OTT_ERR_NULL;
-
-	messages = get_messages_number(expected_size);
-	printf("messages %d\n", messages);
-	for(i = 0; i < messages; i++) {
-		response = res_find_msg_new();
-		// leggi lista msg_id at channel->read_index  <= response, count, LISTA
-		printf("for messaggi1\n");
-		if((ret = get_msg_id_list(channel, response, &msg_id_list, &msg_id_list_len)) != OTT_OK) {
-			break;
-		}
-
-		// trova il msg_ott nella lista  <= MSG
-		// se trovato => update: buffer with msg, offset, next index, channel counters
-		// se non trovato => ritorna err (unexpected_end, notfound)
-		ret = find_ott_msg(msg_id_list, channel, msg_to_read, &msg_len);
-		printf("for messaggi2\n");
-		if (ret == OTT_REVOKE){
-			res_find_msg_free(response);
-			return(OTT_REVOKE);
-		}
-		if(ret == OTT_OK){
-			if(s + msg_len > expected_size) {
-				// does not fit
-				memcpy(outData + s, msg_to_read, (*outDataSize - s));  // copy only what fits
-				channel->recv_msg++;
-				channel->recv_bytes += (*outDataSize - s);
-				res_find_msg_free(response);
-				return(OTT_BUFF_FULL);   // no need to continue
-			} else {
-				memcpy(outData + s, msg_to_read, msg_len);   // update buffer with msg
-				s += msg_len;   // update offset
-			}			
-			//DA CONTROLLARE
-			channel->recv_msg++;   // update counter msg
-			channel->recv_bytes += msg_len;   // update counter bytes
-
-		} else {
-            if(i > 0){
-                ret = OTT_BROKEN_MESSAGE;
-            }
-            res_find_msg_free(response);
-            break;
-        }
-		res_find_msg_free(response);
-	}
-
-    return ret;
-} */
-
-
-
-
-/* uint8_t find_ott_msg(find_msg_t* msg_id_list, OTT_channel* channel, uint8_t* msg, uint16_t* msg_len) {
-	char **msg_id = NULL; // list pointer
-	res_message_t *response_msg = NULL;
-	uint8_t ret;
-	if((msg_id_list == NULL) || (channel == NULL) || (msg == NULL)) return(OTT_ERR_NULL);
-
-
-	// get msg data from msg_id-list 1-by-1
-	msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
-	//printf("msgid %s\n", *msg_id);
-	while (msg_id != NULL) {
-		//printf("msg id\n"); print_raw_hex(msg_id, msg_len);
-		printf("msgid %s\n", *msg_id);
-		response_msg = res_message_new();
-		if(get_msg_from_id(channel, *msg_id, response_msg, msg, msg_len) == OTT_OK) {
-			ret = is_ott_valid_msg(msg, msg_len, channel);
-			if(ret == OTT_OK || ret == OTT_REVOKE){
-				res_message_free(response_msg);
-				return(ret);
-			}
-		}
-		res_message_free(response_msg);
-
-		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
-	}
-
-	return(OTT_NOT_FOUND);
-} */
-
-
 // se i check vanno a buon fine, aggiorno msg e msg_len con solo i dati
 uint8_t is_ott_valid_msg(uint8_t* msg, uint16_t* msg_len, OTT_channel* channel) {
-	uint8_t tmp_data[OTT_MSG_PLAIN_SIZE];
-	uint8_t plaintext[OTT_MSG_PLAIN_SIZE];
+	uint8_t create_tmp_data[OTT_CREATE_MSG_PLAIN_SIZE];
+	uint8_t create_plaintext[OTT_CREATE_MSG_PLAIN_SIZE];
+	uint8_t revoke_tmp_data[OTT_RVK_MSG_PLAIN_SIZE];
+	uint8_t revoke_plaintext[OTT_RVK_MSG_PLAIN_SIZE];
 	uint8_t signature[SIGN_SIZE];
 	uint8_t pubk[PUBK_SIZE];
+	uint8_t anchor[OTT_ANCHOR_SIZE];
 	size_t plain_len = 0;
 	uint16_t data_len = 0;
 	uint8_t ret;
 	bool finalize = false;
-	if((msg == NULL) || (channel == NULL)) return(false);
-	if(*msg_len < OTT_MSG_HEADER_SIZE) return false;
-	;
-	// init
-	memset(tmp_data, 0, OTT_MSG_PLAIN_SIZE);
-	memset(plaintext, 0, OTT_MSG_PLAIN_SIZE);
-	memset(signature, 0, SIGN_SIZE);
-	//memset(next_index, 0, INDEX_SIZE);
-	memset(pubk, 0, PUBK_SIZE);
-
+	if((msg == NULL) || (channel == NULL)) return(OTT_BROKEN_MESSAGE);
+	if(*msg_len < OTT_RVK_MSG_HEADER_SIZE) return OTT_BROKEN_MESSAGE;
+	
 	plain_len = ((size_t) *msg_len) - OTT_TAG_SIZE;
 	//printf("MSg\n", msg); print_raw_hex(msg, msg_len);
 
+	//TAG or REVOKE TAG check
 	if(memcmp(msg, ott_tag, OTT_TAG_SIZE) != 0) {
 		if (memcmp(msg, ott_tag_revoked, OTT_TAG_SIZE) != 0)
-			return false;
+			return OTT_BROKEN_MESSAGE;
 		else
 			finalize = true;
 	}
+
+
+	//Revoke msg
+	if(finalize){
+		// init
+		memset(revoke_tmp_data, 0, OTT_RVK_MSG_PLAIN_SIZE);
+		memset(revoke_plaintext, 0, OTT_RVK_MSG_PLAIN_SIZE);
+		memset(signature, 0, SIGN_SIZE);
+		memset(pubk, 0, PUBK_SIZE);
+
+		memcpy(revoke_plaintext, msg + OTT_TAG_SIZE, plain_len);
+
+		// unpack data
+		_GET16(revoke_plaintext, OTT_RVK_OFFSET_DLEN, data_len);
+		_GET256(revoke_plaintext, OTT_RVK_OFFSET_PUBK, pubk);
+		_GET512(revoke_plaintext, OTT_RVK_OFFSET_SIGN, signature);
+		memcpy(revoke_tmp_data, revoke_plaintext + OTT_RVK_OFFSET_DATA, data_len);
+
+		//fprintf(stdout, "RECV RVK - PUBK:\n"); print_raw_hex(pubk, PUBK_SIZE);
+		//fprintf(stdout, "RECV - NIDX:\n"); print_raw_hex(next_index, INDEX_SIZE);
+		//fprintf(stdout, "RECV - AUTH:\n"); print_raw_hex(AuthSign, AUTH_SIZE);
+		//fprintf(stdout, "RECV - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
+		//fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
+
+		// check signature (consider almost whole msg)
+		memcpy(revoke_tmp_data, revoke_plaintext, OTT_RVK_OFFSET_SIGN); // copy msg until authsign
+		memcpy(revoke_tmp_data + OTT_RVK_OFFSET_SIGN, revoke_plaintext + OTT_RVK_OFFSET_DATA, data_len);  // copy app data
+		if(sign_hash_check(revoke_tmp_data, OTT_RVK_OFFSET_SIGN + data_len, signature, pubk) != OTT_OK) return(( uint8_t) OTT_ERR_CRYPTO_SIGN);
+
+		//print_raw_hex(pubk, PUBK_SIZE);
+		//print_raw_hex(channel->read_idx, INDEX_SIZE);
+
+		//Case 3: previously received valid create msg => check h(pk2|H(pk1)) == index
+		if(channel->valid_msg_found == 1){
+			iota_blake2b_sum(pubk, PUBK_SIZE, anchor, BLAKE2B_HASH_SIZE);
+			ret = ownership_check(channel->keys2.pub, channel->read_idx, anchor);
+			if  (ret == OTT_OK){
+				channel->revoked = 1;
+				return OTT_REVOKE;
+			} else
+				return OTT_BROKEN_MESSAGE;
+		}
+		//Case 4: first msg is a revoke msg => save pk1 and wait for other msg to validate it
+		else if (channel->valid_msg_found == 0 && channel->number_ott_msg > 1){
+			memcpy(channel->keys1.pub, pubk, PUBK_SIZE);
+			channel->revoked = 1;
+			return OTT_OK;
+		} else return(OTT_ERR_RECV);
+		//ret = ownership_check(pubk, channel->read_idx, finalize);
+	/* 	if(ret == OTT_REVOKE) return(OTT_REVOKE);
+		else if(ret != OTT_OK)  */
+
+/* 		memset(msg, 0, OTT_RVK_MSG_SIZE);   // clean msg
+		memcpy(msg, revoke_plaintext + OTT_RVK_OFFSET_DATA, data_len);   // copy only application data
+		*msg_len = data_len;   // set size of application data */
+
+
+	}else{//Create msg
+		// init
+		memset(create_tmp_data, 0, OTT_CREATE_MSG_PLAIN_SIZE);
+		memset(create_plaintext, 0, OTT_CREATE_MSG_PLAIN_SIZE);
+		memset(signature, 0, SIGN_SIZE);
+		memset(pubk, 0, PUBK_SIZE);
+
+		memcpy(create_plaintext, msg + OTT_TAG_SIZE, plain_len);
+
+		// unpack data
+		_GET16(create_plaintext, OTT_MSG_OFFSET_DLEN, data_len);
+		_GET256(create_plaintext, OTT_MSG_OFFSET_PUBK, pubk);
+		_GET256(create_plaintext, OTT_MSG_OFFSET_ANCHOR, anchor);
+
+		if(channel->number_ott_msg > 1){
+			//Save data in the channel in case of a revoke message
+			memcpy(channel->anchor, anchor, OTT_ANCHOR_SIZE);
+			memcpy(channel->keys2.pub, pubk, PUBK_SIZE);
+		}
+
+
+		_GET512(create_plaintext, OTT_MSG_OFFSET_SIGN, signature);
+		memcpy(create_tmp_data, create_plaintext + OTT_MSG_OFFSET_DATA, data_len);
+
+		//fprintf(stdout, "RECV MSG - PUBK:\n"); print_raw_hex(pubk, PUBK_SIZE);
+		//fprintf(stdout, "RECV - NIDX:\n"); print_raw_hex(next_index, INDEX_SIZE);
+		//fprintf(stdout, "RECV MSG - ACHOR:\n"); print_raw_hex(anchor, OTT_ANCHOR_SIZE);
+		//fprintf(stdout, "RECV - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
+		//fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
+
+		// check signature (consider almost whole msg)
+		memcpy(create_tmp_data, create_plaintext, OTT_MSG_OFFSET_SIGN); // copy msg until authsign
+		memcpy(create_tmp_data + OTT_MSG_OFFSET_SIGN, create_plaintext + OTT_MSG_OFFSET_DATA, data_len);  // copy app data
+		if(sign_hash_check(create_tmp_data, OTT_MSG_OFFSET_SIGN + data_len, signature, pubk) != OTT_OK) return(OTT_ERR_CRYPTO_SIGN);
+		
+		//Case 1: only one msg or first received msg is a create msg => check h(pk2|anchor) == index
+		if(channel->revoked == 0){
+			ret = ownership_check(pubk, channel->read_idx, anchor);
+			if  (ret == OTT_OK){
+				channel->valid_msg_found = 1;
+			} else
+				return OTT_BROKEN_MESSAGE;
+		}
+		//Case 2: previously received a valid revoke msg => check h(pk2|H(pk1)) == index
+		else if(channel->revoked == 1){
+			iota_blake2b_sum(channel->keys1.pub, PUBK_SIZE, anchor, BLAKE2B_HASH_SIZE);
+			ret = ownership_check(pubk, channel->read_idx, anchor);
+			if  (ret == OTT_OK){
+				channel->valid_msg_found = 1;
+				return OTT_REVOKE;
+			}
+			else
+				return OTT_BROKEN_MESSAGE;
+			
+		} else return OTT_ERR_RECV;
+
+		memset(msg, 0, OTT_CREATE_MSG_SIZE);   // clean msg
+		memcpy(msg, create_plaintext + OTT_MSG_OFFSET_DATA, data_len);   // copy only application data
+		*msg_len = data_len;   // set size of application data
+
+	}
 	
-	memcpy(plaintext, msg + OTT_TAG_SIZE, plain_len);
-	// unpack data
-	_GET16(plaintext, OTT_OFFSET_DLEN, data_len);
-	_GET256(plaintext, OTT_OFFSET_PUBK, pubk);
-	_GET512(plaintext, OTT_OFFSET_SIGN, signature);
-	memcpy(tmp_data, plaintext + OTT_OFFSET_DATA, data_len);
 
-//fprintf(stdout, "RECV - PUBK:\n"); print_raw_hex(pubk, PUBK_SIZE);
-//fprintf(stdout, "RECV - NIDX:\n"); print_raw_hex(next_index, INDEX_SIZE);
-//fprintf(stdout, "RECV - AUTH:\n"); print_raw_hex(AuthSign, AUTH_SIZE);
-//fprintf(stdout, "RECV - SIGN:\n"); print_raw_hex(signature, SIGN_SIZE);
-//fprintf(stdout, "RECV - DATA:\n"); print_raw_hex(tmp_data, data_len);
-
-	// check signature (consider almost whole msg)
-	memcpy(tmp_data, plaintext, OTT_OFFSET_SIGN); // copy msg until authsign
-	memcpy(tmp_data + OTT_OFFSET_SIGN, plaintext + OTT_OFFSET_DATA, data_len);  // copy app data
-	if(sign_hash_check(tmp_data, OTT_OFFSET_SIGN + data_len, signature, pubk) != OTT_OK) return(false);
-	
-	//check ownership (hash(pubk) == index)
-	//print_raw_hex(pubk, PUBK_SIZE);
-	//print_raw_hex(channel->read_idx, INDEX_SIZE);
-	ret = ownership_check(pubk, channel->read_idx, finalize);
-	if(ret == OTT_REVOKE) return(OTT_REVOKE);
-	else if(ret != OTT_OK) return(OTT_ERR_RECV);
-
-	memset(msg, 0, OTT_MSG_SIZE);   // clean msg
-	memcpy(msg, plaintext + OTT_OFFSET_DATA, data_len);   // copy only application data
-	*msg_len = data_len;   // set size of application data
 	return(OTT_OK);
 }
 
 
-uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, bool finalize) {
-	iota_keypair_t keypair;
-	uint8_t hash[BLAKE2B_HASH_SIZE];
-	memset(hash, 0, BLAKE2B_HASH_SIZE);
-	//TODO REVOKE CONTROLLARE PRIV1 HASH
-	iota_blake2b_sum(pubk, PUBK_SIZE, hash, BLAKE2B_HASH_SIZE);   // h= b2b(recv_pubk)
-	//print_raw_hex(hash, BLAKE2B_HASH_SIZE);
-	
-	if (finalize){
-		//hash(pub1)-> pub2 -> hash(pub2) = index
-		iota_crypto_keypair(hash, &keypair);
-		//printf("pub2");print_raw_hex(hash, BLAKE2B_HASH_SIZE);
-		iota_blake2b_sum(keypair.pub, PUBK_SIZE, hash, BLAKE2B_HASH_SIZE);
-		//print_raw_hex(hash, BLAKE2B_HASH_SIZE);
-	}
-	
-	if(memcmp(hash, current_index, INDEX_SIZE) != 0){
+uint8_t ownership_check(uint8_t* pubk, uint8_t* current_index, uint8_t* anchor) {
+	uint8_t hash[BLAKE2B_HASH_SIZE * 2];
+	uint8_t buff[BLAKE2B_HASH_SIZE];
+	memset(hash, 0, BLAKE2B_HASH_SIZE * 2);
+
+	memcpy(hash, pubk, BLAKE2B_HASH_SIZE);
+	memcpy(hash + BLAKE2B_HASH_SIZE, anchor, BLAKE2B_HASH_SIZE);
+
+	iota_blake2b_sum(hash, BLAKE2B_HASH_SIZE * 2, buff, BLAKE2B_HASH_SIZE);
+
+	if(memcmp(buff, current_index, INDEX_SIZE) != 0){
 		return(OTT_ERR_CRYPTO_OWNERSHIP);
 	}
-	if (finalize)
-		return(OTT_REVOKE);
-	else	
 		return(OTT_OK);
 }
 
@@ -335,7 +332,7 @@ uint8_t get_msg_from_id(OTT_channel* channel, char* msg_id, res_message_t* respo
 		if(strlen(msg_data) <= 2*OTT_MSG_HEX_SIZE) {
 			hex2string(msg_data, msg_string, OTT_MSG_HEX_SIZE);
 			//print_raw_hex(msg_string, OTT_MSG_HEX_SIZE);
-			hex_2_bin(msg_string, strlen(msg_string), (byte_t *)msg_bin, OTT_MSG_SIZE);
+			hex_2_bin(msg_string, strlen(msg_string), (byte_t *)msg_bin, OTT_CREATE_MSG_SIZE);
 			*msg_bin_len = strlen(msg_string) / 2;
 			return(OTT_OK);
 		}
@@ -368,7 +365,7 @@ uint8_t get_msg_id_list(OTT_channel* channel, res_find_msg_t* response_info, fin
 	if(response_info->is_error == false) {
 		*list = response_info->u.msg_ids;
 		*list_len = response_info->u.msg_ids->count;
-		printf("%d msg count\n",response_info->u.msg_ids->count);
+		//printf("%d msg count\n",response_info->u.msg_ids->count);
 		return(OTT_OK);
 	} else {
 		return(OTT_ERR_RECV);
@@ -378,7 +375,7 @@ uint8_t get_msg_id_list(OTT_channel* channel, res_find_msg_t* response_info, fin
 
 
 uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, bool finalize) {
-	uint8_t msg_to_send[OTT_MSG_SIZE];
+	uint8_t msg_to_send[OTT_CREATE_MSG_SIZE];
 	uint16_t msg_len = 0, i = 0, messages = 0;
 	size_t s = 0, sent_data = 0;
 	uint8_t* d = inData;
@@ -406,47 +403,69 @@ uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, bo
 
 
 uint8_t create_ott_msg(OTT_channel* channel, uint8_t* data, size_t data_len, uint8_t* msg, uint16_t* msg_len, bool finalize) {
-	uint8_t tmp_data[OTT_MSG_PLAIN_SIZE];
-	uint8_t plaintext[OTT_MSG_PLAIN_SIZE];
+	uint8_t create_tmp_data[OTT_CREATE_MSG_HEADER_SIZE];
+	uint8_t revoke_tmp_data[OTT_RVK_MSG_HEADER_SIZE];
+	uint8_t create_plaintext[OTT_CREATE_MSG_PLAIN_SIZE];
+	uint8_t revoke_plaintext[OTT_RVK_MSG_PLAIN_SIZE];
 	uint8_t signature[SIGN_SIZE];
 	uint8_t err = 0;
 	size_t plain_len = 0;
 
+	if (finalize){
+		
+		//revoke msg -> pub1
+		memset(revoke_tmp_data, 0, OTT_RVK_MSG_PLAIN_SIZE);
+		memset(revoke_plaintext, 0, OTT_RVK_MSG_PLAIN_SIZE);
+		memset(signature, 0, SIGN_SIZE);
 
-	// init
-	memset(tmp_data, 0, OTT_MSG_PLAIN_SIZE);
-	memset(plaintext, 0, OTT_MSG_PLAIN_SIZE);
-	memset(signature, 0, SIGN_SIZE);
-	
-	// copy data fields
-	_SET16(plaintext, OTT_OFFSET_DLEN, data_len);
-	//revoke -> pub1
-	if (finalize)
-		_SET256(plaintext, OTT_OFFSET_PUBK, channel->first_index.keys.pub);
-	else
-		_SET256(plaintext, OTT_OFFSET_PUBK, channel->second_index.keys.pub);
-	
-	// compute signature
-	memcpy(tmp_data, plaintext, OTT_OFFSET_SIGN);
-	memcpy(tmp_data + OTT_OFFSET_SIGN, data, data_len);
-	if (finalize)
-		err |= sign_hash_do(tmp_data, OTT_OFFSET_SIGN + data_len, 
-					   channel->first_index.keys.priv, 64, signature, SIGN_SIZE);
-	else
-		err |= sign_hash_do(tmp_data, OTT_OFFSET_SIGN + data_len, 
-					   channel->second_index.keys.priv, 64, signature, SIGN_SIZE);
-	_SET512(plaintext, OTT_OFFSET_SIGN, signature);
+		// copy data fields
+		_SET16(revoke_plaintext, OTT_RVK_OFFSET_DLEN, data_len);
 
-	memcpy(plaintext + OTT_OFFSET_DATA, data, data_len);
-	plain_len = data_len + OTT_MSG_HEADER_SIZE;
-
-	// build message
-	if (finalize)
+		_SET256(revoke_plaintext, OTT_RVK_OFFSET_PUBK, channel->keys1.pub);
+		// compute signature
+		memcpy(revoke_tmp_data, revoke_plaintext, OTT_RVK_OFFSET_SIGN);
+		memcpy(revoke_tmp_data + OTT_RVK_OFFSET_SIGN, data, data_len);
+		//err == sign_hash_do(revoke_tmp_data, OTT_RVK_OFFSET_SIGN + data_len, channel->keys1.priv, 64, signature, SIGN_SIZE);
+		if(sign_hash_do(revoke_tmp_data, OTT_RVK_OFFSET_SIGN + data_len, channel->keys1.priv, 64, signature, SIGN_SIZE) != 0){
+			printf("ERROR sign_hash_do revoke\n");
+			return err;
+		}
+		_SET512(revoke_plaintext, OTT_RVK_OFFSET_SIGN, signature);		
+		memcpy(revoke_plaintext + OTT_RVK_OFFSET_DATA, data, data_len);
+		plain_len = data_len + OTT_RVK_MSG_HEADER_SIZE;
+		// build message
 		memcpy(msg, ott_tag_revoked, OTT_TAG_SIZE);
-	else
+		memcpy(msg + OTT_TAG_SIZE, revoke_plaintext, plain_len);
+		*msg_len = plain_len + OTT_TAG_SIZE ;
+
+	}else{
+		//Create msg
+		memset(create_tmp_data, 0, OTT_CREATE_MSG_PLAIN_SIZE);
+		memset(create_plaintext, 0, OTT_CREATE_MSG_PLAIN_SIZE);
+		memset(signature, 0, SIGN_SIZE);
+
+		// copy data fields
+		_SET16(create_plaintext, OTT_MSG_OFFSET_DLEN, data_len);
+
+		_SET256(create_plaintext, OTT_MSG_OFFSET_PUBK, channel->keys2.pub);
+		_SET256(create_plaintext, OTT_MSG_OFFSET_ANCHOR, channel->anchor);
+		// compute signature
+		memcpy(create_tmp_data, create_plaintext, OTT_MSG_OFFSET_SIGN);
+		memcpy(create_tmp_data + OTT_MSG_OFFSET_SIGN, data, data_len);
+		if(sign_hash_do(create_tmp_data, OTT_MSG_OFFSET_SIGN + data_len, channel->keys2.priv, 64, signature, SIGN_SIZE) != 0){
+			printf("ERROR sign_hash_do\n");
+			return err;
+		}
+		_SET512(create_plaintext, OTT_MSG_OFFSET_SIGN, signature);
+		memcpy(create_plaintext + OTT_MSG_OFFSET_DATA, data, data_len);
+		plain_len = data_len + OTT_CREATE_MSG_HEADER_SIZE;
+		// build message
 		memcpy(msg, ott_tag, OTT_TAG_SIZE);
-	memcpy(msg + OTT_TAG_SIZE, plaintext, plain_len);
-	*msg_len = plain_len + OTT_TAG_SIZE ;
+		memcpy(msg + OTT_TAG_SIZE, create_plaintext, plain_len);
+		*msg_len = plain_len + OTT_TAG_SIZE ;
+	}
+	
+
 
 
 //fprintf(stdout, "SENT - PUBK:\n"); print_raw_hex(channel->current_index.keys.pub, PUBK_SIZE);
@@ -482,7 +501,7 @@ uint8_t sign_hash_do(uint8_t* data, size_t data_len, uint8_t* key, uint16_t key_
 //fprintf(stdout, "HASHDO - HASH:\n"); print_raw_hex(hash, BLAKE2B_HASH_SIZE);
 	if ((ret = iota_crypto_sign(key, hash, BLAKE2B_HASH_SIZE, signature)) != 0 ) ret = OTT_ERR_CRYPTO_BLACKE2B;
 	
-	return(OTT_OK);
+	return(ret);
 }
 
 
@@ -548,24 +567,32 @@ bool is_null_index(uint8_t* idx) {
 }
 
 
-uint8_t generate_iota_index(IOTA_Index* idx1, IOTA_Index* idx2) {
+uint8_t generate_iota_index(OTT_channel* channel) {
 	int ret;
-	if(idx1 == NULL || idx2 == NULL) return OTT_ERR_NULL;
+	uint8_t berry1[SEED_SIZE];
+	uint8_t berry2[SEED_SIZE];
+	uint8_t buff[SEED_SIZE * 2];
+	if(channel == NULL) return OTT_ERR_NULL;
+	
 	// generate first random seed
-	iota_crypto_randombytes(idx1->berry, SEED_SIZE);
-	// generate the first keypair from random 
-	iota_crypto_keypair(idx1->berry, &(idx1->keys));
-	// first index = HashB2B(PubK1) = second random seed
-	if ((ret = address_from_ed25519_pub(idx1->keys.pub, idx1->index)) != 0) return OTT_ERR_CRYPTO_E25519;
-	//printf("idx1 index \n"); print_raw_hex(idx1->index, INDEX_SIZE);
-	//copy berry DA CONTROLLARE
-	memcpy(idx2->berry, idx1->index, SEED_SIZE);
-	//printf("idx2 berry \n", idx2->berry);print_raw_hex(idx2->berry, SEED_SIZE);
-	// generate the second keypair from second random 
-	iota_crypto_keypair(idx2->berry, &(idx2->keys));
-	// second index = HashB2B(PubK2)
-	if ((ret = address_from_ed25519_pub(idx2->keys.pub, idx2->index)) != 0) return OTT_ERR_CRYPTO_E25519;
-	//printf("idx2 index \n");print_raw_hex(idx2->index, INDEX_SIZE);
+	iota_crypto_randombytes(berry1, SEED_SIZE);
+	// generate second random seed
+	iota_crypto_randombytes(berry2, SEED_SIZE);
+	//generate the firstkeypair from random 
+	iota_crypto_keypair(berry1, &(channel->keys1));
+	//fprintf(stdout, "PUBK1:\n"); print_raw_hex(channel->keys1.pub, PUBK_SIZE);
+	//generate the second keypair from random 
+	iota_crypto_keypair(berry2, &(channel->keys2));
+	//fprintf(stdout, "PUBK2:\n"); print_raw_hex(channel->keys2.pub, PUBK_SIZE);
+	//Create the anchor -> H(pub key1)
+	if ((ret = address_from_ed25519_pub(channel->keys1.pub, channel->anchor)) != 0) return OTT_ERR_CRYPTO_E25519;
+	//printf("Anchor: \n"); print_raw_hex(channel->anchor, INDEX_SIZE);
+	//pub key2|anchor
+	memcpy(buff, channel->keys2.pub, ED25519_ADDRESS_BYTES);
+	memcpy(buff + ED25519_ADDRESS_BYTES, channel->anchor, SEED_SIZE);
+	//create the index -> H(pub key2|anchor)
+	if ((ret = iota_blake2b_sum(buff, SEED_SIZE * 2, channel->index, BLAKE2B_HASH_SIZE)) != 0 ) ret = OTT_ERR_CRYPTO_BLACKE2B;
+	//printf("iNDEX: \n"); print_raw_hex(channel->index, INDEX_SIZE);
 	return(OTT_OK);
 }
 
@@ -575,11 +602,11 @@ uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_s
 	res_send_message_t response;
 	iota_client_conf_t iota_node;
 
-	if(raw_data_size > OTT_MSG_SIZE) return OTT_ERR_SIZE_EXCEEDED;
+	if(raw_data_size > OTT_CREATE_MSG_SIZE) return OTT_ERR_SIZE_EXCEEDED;
 
 	// Convert Data and Index to ASCII-HEX
 	bin_2_hex(raw_data, raw_data_size, (char *) (ch->buff_hex_data), IOTA_MAX_MSG_SIZE);
-	bin_2_hex(ch->second_index.index, INDEX_SIZE, (char *) (ch->buff_hex_index), INDEX_HEX_SIZE);
+	bin_2_hex(ch->index, INDEX_SIZE, (char *) (ch->buff_hex_index), INDEX_HEX_SIZE);
 	
 	// convert IOTA Endpoint
 	convert_ott_endpoint(ch->node, &iota_node);
@@ -634,32 +661,4 @@ void print_raw_hex(uint8_t* array, uint16_t array_len) {
 void dummy_print(uint8_t* str_hello) {
 	fprintf(stdout, "This is C!\n");
 	if(str_hello != NULL) fprintf(stdout, "%s\n", str_hello);
-}
-
-void test_write_read_enc_largemsg() {
-	OTT_channel ch_send, ch_read;
-	uint8_t mylargemsg[DATA_SIZE-14];
-	uint8_t read_buff[DATA_SIZE];
-	uint16_t expected_size = 2000;
-	uint8_t ret = 0;
-	
-	IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-							 .port = 443,
-							 .tls = true};
-
-	// write 2 msg
-	OTT_write_init_channel(&ch_send, 1, &testnet0tls);
-	OTT_write(&ch_send, mylargemsg, DATA_SIZE-14, false);
-	fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
-
-	// read 2 msg
-	OTT_read_init_channel(&ch_read, 1, &testnet0tls);
-	set_channel_index_read(&ch_read, ch_send.second_index.index);
-	ret = OTT_read(&ch_read, read_buff, &expected_size);
-	fprintf(stdout, "OTT_read ret:");
-	fprintf(stdout, "\n\t val=%d", ret);
-	fprintf(stdout, "\n\t expctsize=%d \t", expected_size);
-	fprintf(stdout, "\n\t msg_read=%d \t", ch_read.recv_msg);
-	fprintf(stdout, "\n\t bytes_read=%d \t", ch_read.recv_bytes);
-	fprintf(stdout, "\n\t cmpbuff=%s \n", (memcmp(mylargemsg, read_buff, DATA_SIZE-14)==0) ? "success" : "failure");
 }

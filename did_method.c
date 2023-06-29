@@ -118,7 +118,6 @@ char *create_did_document(char *did, ott_buf *Abuff, int Atype, ott_buf *Sbuff, 
     {
         goto fail;
     }
-    // created
     time_t now = time(0);
     strftime(time_buf, 100, " %Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
@@ -220,16 +219,13 @@ int save_channel(OTT_channel *ch)
     fwrite(&(ch->node->tls), sizeof(bool), 1, fp);
     fwrite(&(ch->node->port), sizeof(uint16_t), 1, fp);
     fwrite(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
-    // start index
-    fwrite(ch->first_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fwrite(ch->first_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fwrite(ch->first_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
-    fwrite(ch->first_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp); // DA RIVEDERE
-    // Ccurrent index
-    fwrite(ch->second_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fwrite(ch->second_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fwrite(ch->second_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
-    fwrite(ch->second_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp); // DA RIVEDERE
+
+    fwrite(ch->index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(ch->anchor, sizeof(uint8_t), INDEX_SIZE, fp);
+    fwrite(ch->keys1.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fwrite(ch->keys1.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);
+    fwrite(ch->keys2.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fwrite(ch->keys2.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);
 
     // sent_msg
     fwrite(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
@@ -264,16 +260,17 @@ int load_channel(OTT_channel *ch, IOTA_Endpoint *endpoint)
     fread(&(ch->node->tls), sizeof(bool), 1, fp);
     fread(&(ch->node->port), sizeof(uint16_t), 1, fp);
     fread(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
-    // first index
-    fread(ch->first_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fread(ch->first_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fread(ch->first_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
-    fread(ch->first_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp); // DA RIVEDERE
-    // second index
-    fread(ch->second_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    fread(ch->second_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    fread(ch->second_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
-    fread(ch->second_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp); // DA RIVEDERE
+
+    // fread(ch->first_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
+    // fread(ch->first_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
+    // fread(ch->first_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    // fread(ch->first_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);
+    fread(ch->index, sizeof(uint8_t), INDEX_SIZE, fp);
+    fread(ch->anchor, sizeof(uint8_t), INDEX_SIZE, fp);
+    fread(ch->keys1.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fread(ch->keys1.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);
+    fread(ch->keys2.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
+    fread(ch->keys2.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);
     // sent_msg
     fread(&(ch->sent_msg), sizeof(uint16_t), 1, fp);
     // recv_msg
@@ -302,9 +299,9 @@ int did_ott_create(method *methods, char *did_new)
     /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
                                  .port = MAINNET00_PORT,
                                  .tls = true}; */
-    /*IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
-                                 .port = 14265,
-                                 .tls = false};*/
+    /*     IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+                .port = 14265,
+                .tls = false}; */
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
                                  .port = 80,
                                  .tls = false};
@@ -315,7 +312,7 @@ int did_ott_create(method *methods, char *did_new)
         goto fail;
     }
 
-    index_bin = ch_send.second_index.index; // here i grab the start index that is my did
+    index_bin = ch_send.index; // here i grab the start index that is my did
     ret = bin_2_hex(index_bin, INDEX_SIZE, index, INDEX_HEX_SIZE);
     if (ret != 0)
     {
@@ -376,9 +373,9 @@ int did_ott_resolve(did_document *didDocument, char *did)
     /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
                                  .port = MAINNET00_PORT,
                                  .tls = true}; */
-    /* IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
-                                 .port = 14265,
-                                 .tls = false}; */
+    /*     IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
+                .port = 14265,
+                .tls = false}; */
     IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
                                  .port = 80,
                                  .tls = false};
@@ -617,15 +614,12 @@ int did_ott_update(method *methods, char *did)
     uint8_t write_buff[REVOKE_MSG_SIZE];
     fprintf(stdout, "UPDATE\n");
 
-    /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
-                                 .port = MAINNET00_PORT,
-                                 .tls = true}; */
+    /*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
+                .port = MAINNET00_PORT,
+                .tls = true}; */
     IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
                                  .port = 14265,
                                  .tls = false};
-   /*  IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-                                 .port = 80,
-                                 .tls = false}; */
 
     load_channel(&ch_rev, &testnet0tls);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
@@ -641,7 +635,7 @@ int did_ott_update(method *methods, char *did)
         goto fail;
     }
 
-    index_bin = ch_send.second_index.index;
+    index_bin = ch_send.index;
     ret = bin_2_hex(index_bin, INDEX_SIZE, index_hex, INDEX_HEX_SIZE);
     if (ret != 0)
     {
@@ -689,15 +683,13 @@ int did_ott_revoke(char *did)
     memset(revoke_index, 0, INDEX_SIZE);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
 
-    /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
-                                 .port = MAINNET00_PORT,
-                                 .tls = true}; */
+    /*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
+                .port = MAINNET00_PORT,
+                .tls = true}; */
+
     IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
                                  .port = 14265,
                                  .tls = false};
-    /* IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-                                 .port = 80,
-                                 .tls = false}; */
 
     load_channel(&ch_send, &testnet0tls);
 
@@ -712,4 +704,5 @@ int did_ott_revoke(char *did)
 fail:
     return (ret);
 }
+
 

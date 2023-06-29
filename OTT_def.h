@@ -53,19 +53,22 @@
 #define PRIK_SIZE             (64)   // =ED_PRIVATE_KEY_BYTES
 #define ENCMAC_SIZE           (16)   // =crypto_secretbox_MACBYTES
 #define OTT_TAG_SIZE          (32)   // =customizable
-
+#define OTT_ANCHOR_SIZE       (32)   // ==SEED_SIZE, =ED25519_ADDRESS_BYTES
 #define BLAKE2B_HASH_SIZE     (32)   // =CRYPTO_BLAKE2B_HASH_BYTES
 
 // Message
-#define OTT_MSG_HEADER_SIZE       (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE  + DLEN_SIZE)
-#define OTT_MSG_PLAIN_SIZE        (OTT_MSG_HEADER_SIZE + DATA_SIZE)
-#define OTT_MSG_SIZE              (OTT_MSG_PLAIN_SIZE + OTT_TAG_SIZE)
+#define OTT_RVK_MSG_HEADER_SIZE         (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE  + DLEN_SIZE)
+#define OTT_CREATE_MSG_HEADER_SIZE      (INDEX_SIZE + PUBK_SIZE + SIGN_SIZE  + DLEN_SIZE + OTT_ANCHOR_SIZE)
+#define OTT_RVK_MSG_PLAIN_SIZE        	(OTT_RVK_MSG_HEADER_SIZE + DATA_SIZE)
+#define OTT_CREATE_MSG_PLAIN_SIZE       (OTT_CREATE_MSG_HEADER_SIZE + DATA_SIZE)
+#define OTT_RVK_MSG_SIZE              	(OTT_RVK_MSG_PLAIN_SIZE + OTT_TAG_SIZE)
+#define OTT_CREATE_MSG_SIZE             (OTT_CREATE_MSG_PLAIN_SIZE + OTT_TAG_SIZE)
 
 // Others
 #define INDEX_HEX_SIZE           (1 + 2 * INDEX_SIZE)
 #define MSGID_HEX_SIZE           (64)   // =IOTA_MESSAGE_ID_HEX_BYTES
 #define ENDPTNAME_SIZE           (64)   // =0.25*IOTA_ENDPOINT_MAX_LEN
-#define OTT_MSG_HEX_SIZE         (1 + 2 * OTT_MSG_SIZE)
+#define OTT_MSG_HEX_SIZE         (1 + 2 * OTT_CREATE_MSG_SIZE)
 
 
 
@@ -101,14 +104,26 @@ enum {
 	OTT_ERR_CRYPTO_SIGN = 0x101
 };
 
-enum {
+/* enum {
 	OTT_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
 	OTT_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
 	OTT_OFFSET_SIGN = 34,    // +64 (SIGN_SIZE)
 	OTT_OFFSET_DATA = 98,
 };
-
-
+ */
+enum {
+	//Revoke MSG offesets
+	OTT_RVK_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
+	OTT_RVK_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
+	OTT_RVK_OFFSET_SIGN = 34,    // +64 (SIGN_SIZE)
+	OTT_RVK_OFFSET_DATA = 98,
+	//OTT MSG offesets
+	OTT_MSG_OFFSET_DLEN = 0,     // + 2 (DLEN_SIZE)
+	OTT_MSG_OFFSET_PUBK = 2,     // +32 (PUBK_SIZE)
+	OTT_MSG_OFFSET_ANCHOR = 34,  // +32 (BLAKE2B_HASH_SIZE)
+	OTT_MSG_OFFSET_SIGN = 66,    // +64 (SIGN_SIZE)
+	OTT_MSG_OFFSET_DATA = 130,
+};
 
 /* --------------------------------------------------------------------- */
 /* -### CONST ###- */
@@ -153,21 +168,27 @@ typedef struct IOTA_index_t {
 	iota_keypair_t keys;        // keypair generated from berry
 } IOTA_Index;
 
-typedef struct OTT_Key_t {
+/* typedef struct OTT_Key_t {
 	uint8_t *data;
 	uint16_t data_len;
 } OTT_Key;
-
+ */
 
 typedef struct OTT_channel_t {
 	uint16_t id;
 	
 	IOTA_Endpoint* node;
+	
+	uint8_t index[INDEX_SIZE];
+	uint8_t anchor[INDEX_SIZE];
 
-	IOTA_Index first_index;
-	IOTA_Index second_index; //create index	
+	iota_keypair_t keys1; //Create msg
+	iota_keypair_t keys2; //Revoke msg
+
 	uint8_t read_idx[INDEX_SIZE];
-
+	int number_ott_msg; // 1 only create, 2+ probably revoke too so save data
+	int revoked; //used in the read
+	int valid_msg_found;
 	uint16_t sent_msg;
 	uint16_t recv_msg;
 	uint16_t sent_bytes;
