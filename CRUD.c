@@ -5,10 +5,13 @@
 #include <openssl/evp_ssi.h>
 #include "did_method.h"
 
+static OSSL_FUNC_did_newctx_fn did_newctx;
 static OSSL_FUNC_did_create_fn did_create;
 static OSSL_FUNC_did_resolve_fn did_resolve;
 static OSSL_FUNC_did_update_fn did_update;
 static OSSL_FUNC_did_revoke_fn did_revoke;
+static OSSL_FUNC_did_freectx_fn did_freectx;
+static OSSL_FUNC_did_set_ctx_params_fn did_set_ctx_params;
 
 #define KEY \
 "-----BEGIN PUBLIC KEY-----\nMIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDC8pta2RewzPpJ1I/Ir\nxycs1p+gxqVqV32mybVQ011WrUfc4J4ubnRFFfjnlMmXAIWhZANiAAS4PSfpIErh\nA22hFrBh30xz8Tcc2xw0zB7VTVZhIR/YmoenTnOJnLTMGP8LGXWJNz1e7ffq7KR7\nMMDhtk4Wc1I4NGgXuYx54TNt8g15Bn6WJbHt4TZMfeTlod/INe2QgOg=" \
