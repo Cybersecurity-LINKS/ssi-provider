@@ -6,10 +6,8 @@
 #include <openssl/opensslv.h>
 
 extern const OSSL_DISPATCH did_crud_functions[];
-extern const OSSL_DISPATCH did_fake_functions[];
 static const OSSL_ALGORITHM ssi_did[] = {
     {"OTT", "provider=ssi", did_crud_functions},
-    {"ETH", "provider=ssi", did_fake_functions},
     {NULL, NULL, NULL}};
 
 extern const OSSL_DISPATCH vc_functions[];

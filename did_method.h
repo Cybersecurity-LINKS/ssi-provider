@@ -31,7 +31,9 @@
 #define DID_REVOKE_OK           0
 #define DID_UPDATE_OK           0
 
-typedef struct ott_buf {
+#define MAX_DID_FIELD            1000
+
+/* typedef struct ott_buf {
     unsigned char *p;
     size_t len;
 } ott_buf;
@@ -56,8 +58,22 @@ typedef struct did_document {
     ott_buf created;
     method authMethod;
     method assertionMethod;
-} did_document;
+} did_document; */
 
+typedef struct method {
+	char *id;
+	char *type;
+	char *controller;
+	char *pkey;
+} method;
+
+typedef struct did_document {
+    char *atContext;
+    char *id;
+    char *created;  
+    method *authentication;
+    method *assertion; 
+}DID_CTX;
 
 typedef enum {
     //da inserirne anche altre se servono
@@ -72,9 +88,6 @@ typedef enum {
     AssertionMethod
 } METHOD_TYPES;
 
-char *key_types_to_string(KEY_TYPES type);
-
-int find_key_type(char *key_type);
 
 void did_document_init(did_document *did_doc);
 

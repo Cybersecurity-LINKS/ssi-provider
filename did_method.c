@@ -36,7 +36,30 @@ void did_document_free(did_document *did_doc)
     free(did_doc->assertionMethod.pk_pem.p);
 }
 // to be expanded
-char *key_types_to_string(KEY_TYPES type)
+static int get_key_type(EVP_PKEY *key)
+{
+    int ret = 0;
+    ret = EVP_PKEY_get_id(key);
+    
+    switch (ret)
+    {
+    case EVP_PKEY_RSA:
+        ret = RsaVerificationKey2023;
+        break;
+    case EVP_PKEY_EC:
+        ret = EcdsaSecp256r1VerificationKey2023;
+        break;
+    case EVP_PKEY_ED25519:
+        ret = Ed25519VerificationKey2023;
+        break;
+    default:
+        ret = -1;
+        break;
+    }
+    return ret;
+}
+
+static char *key_types_to_string(KEY_TYPES type)
 {
     switch (type)
     {
@@ -51,7 +74,7 @@ char *key_types_to_string(KEY_TYPES type)
     }
 }
 
-int find_key_type(char *key_type)
+static int find_key_type(char *key_type)
 {
     int type = 0, exit = 0;
     while (!exit)
@@ -87,7 +110,7 @@ int find_key_type(char *key_type)
     return NO_VALID_KEY_TYPE;
 }
 
-char *create_did_document(char *did, ott_buf *Abuff, int Atype, ott_buf *Sbuff, int Stype)
+char *create_did_document(char *did, char *authn_pkey, char *assrtn_pkey)
 {
     cJSON *method = NULL;
     cJSON *atContext_cJson = NULL;
@@ -101,17 +124,10 @@ char *create_did_document(char *did, ott_buf *Abuff, int Atype, ott_buf *Sbuff, 
         return NULL;
     }
     //@context
-    atContext_cJson = cJSON_AddArrayToObject(did_document, "@context");
-    if (atContext_cJson == NULL)
+    if (cJSON_AddStringToObject(did_document, "@context", ctx->atContext) == NULL)
     {
         goto fail;
     }
-    cJSON *ctx = cJSON_CreateString(CONTEXT_DID_V1);
-    if (ctx == NULL)
-    {
-        goto fail;
-    }
-    cJSON_AddItemToArray(atContext_cJson, ctx);
 
     // id
     if (cJSON_AddStringToObject(did_document, "id", did) == NULL)
@@ -202,7 +218,7 @@ fail:
     return NULL;
 }
 
-int save_channel(OTT_channel *ch)
+static int save_channel(OTT_channel *ch)
 {
 
     FILE *fp = NULL;
@@ -243,7 +259,7 @@ int save_channel(OTT_channel *ch)
     return 0;
 }
 
-int load_channel(OTT_channel *ch, IOTA_Endpoint *endpoint)
+static int load_channel(OTT_channel *ch, IOTA_Endpoint *endpoint)
 {
     FILE *fp = NULL;
     // open the file in write binary mode
@@ -287,13 +303,30 @@ int load_channel(OTT_channel *ch, IOTA_Endpoint *endpoint)
     return 0;
 }
 
-int did_ott_create(method *methods, char *did_new)
+static int sub_string(const char *input, int offset, int len, char *dest)
+{
+    size_t input_len = strlen(input);
+
+    if (offset + len > input_len)
+    {
+        return -1;
+    }
+
+    strncpy(dest, input + offset, len);
+    dest[len] = '\0';
+    return 0;
+}
+
+int did_ott_create(DID_CTX ctx)
 {
     uint8_t *index_bin;
     char index[INDEX_HEX_SIZE];
     uint8_t ret;
     char did[DID_LEN] = "";
     OTT_channel ch_send;
+    BIO *authn_pubkey;
+    BIO *assrtn_pubkey;
+    int ret;
 
     fprintf(stdout, "CREATE\n");
     /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
@@ -321,7 +354,17 @@ int did_ott_create(method *methods, char *did_new)
     strncat(did, DID_PREFIX, DID_PREFIX_LEN);
     strncat(did, index, INDEX_HEX_SIZE);
 
-    char *did_doc = create_did_document(did, &methods[0].pk_pem, methods[0].type, &methods[1].pk_pem, methods[1].type);
+    ctx->did = OPENSSL_strdup(did);
+
+    authn_pubkey = BIO_new_mem_buf(ctx->authentication->pkey, -1);
+    if((ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL)) == -1){
+        goto faiL;
+    }
+    
+    ctx->authentication->type = OPENSSL_strdup(key_types_to_string(ret));
+    ctx->authentication->controller = OPENSSL_strdup(did); 
+
+    char *did_doc = create_did_document(ctx->did, ctx->authentication->pkey, ctx->assertion->pkey);
     if (did_doc == NULL)
     {
         ret = DID_CREATE_ERROR;
@@ -342,20 +385,6 @@ int did_ott_create(method *methods, char *did_new)
     return DID_CREATE_OK;
 fail:
     return (ret);
-}
-
-static int sub_string(const char *input, int offset, int len, char *dest)
-{
-    size_t input_len = strlen(input);
-
-    if (offset + len > input_len)
-    {
-        return -1;
-    }
-
-    strncpy(dest, input + offset, len);
-    dest[len] = '\0';
-    return 0;
 }
 
 int did_ott_resolve(did_document *didDocument, char *did)

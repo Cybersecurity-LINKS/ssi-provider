@@ -12,21 +12,77 @@ static OSSL_FUNC_did_update_fn did_update;
 static OSSL_FUNC_did_revoke_fn did_revoke;
 static OSSL_FUNC_did_freectx_fn did_freectx;
 static OSSL_FUNC_did_set_ctx_params_fn did_set_ctx_params;
+static OSSL_FUNC_did_get_ctx_params_fn did_get_ctx_params;
 
-#define KEY \
-"-----BEGIN PUBLIC KEY-----\nMIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDC8pta2RewzPpJ1I/Ir\nxycs1p+gxqVqV32mybVQ011WrUfc4J4ubnRFFfjnlMmXAIWhZANiAAS4PSfpIErh\nA22hFrBh30xz8Tcc2xw0zB7VTVZhIR/YmoenTnOJnLTMGP8LGXWJNz1e7ffq7KR7\nMMDhtk4Wc1I4NGgXuYx54TNt8g15Bn6WJbHt4TZMfeTlod/INe2QgOg=" \
-"-----END PUBLIC KEY-----\n"
+void *did_newctx(void *provctx)
+{ // should i do something with provctx?
 
-#define KEY2 \
-"PUBLIC KEY 2"
+    DID_CTX *ctx;
 
-#define KEY3 \
-"KEY 3"
+    /*if (!ossl_prov_is_running())
+        return NULL;*/
 
-#define KEY4 \
-"KEY 4"
+    ctx = OPENSSL_zalloc(sizeof(*ctx));
+    if (ctx == NULL)
+    {
+        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        return NULL;
+    }
+    return ctx;
+}
 
-static void *did_create(void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
+void did_freectx(void *didctx)
+{
+
+    DID_CTX *ctx = (DID_CTX *)didctx;
+
+    //TO DO
+}
+
+void *did_create(void *didctx, OSSL_PARAM params[]){
+
+    const OSSL_PARAM *p;
+    DID_CTX *ctx = (DID_CTX *)didctx;
+
+    /* @Context */
+    ctx->atContext = OPENSSL_strdup(CONTEXT_DID_V1);
+
+    /* created */
+    time_t now = time(0);
+    ctx->issuanceDate = (char *)OPENSSL_zalloc(100);
+    strftime(ctx->issuanceDate, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+
+    /* authentication public key */
+    p = OSSL_PARAM_locate_const(params, OSSL_DID_PARAM_AUTHN_METH_PKEY);
+    if (p != NULL)
+    {
+        char *str = NULL;
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
+            goto fail;
+        ctx->authentication->pkey = OPENSSL_strdup(str);
+        OPENSSL_free(str);
+    }
+
+    /* assertion public key */
+    p = OSSL_PARAM_locate_const(params, OSSL_DID_PARAM_ASSRTN_METH_PKEY);
+    if (p != NULL)
+    {
+        char *str = NULL;
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
+            goto fail;
+        ctx->assertion->pkey = OPENSSL_strdup(str);
+        OPENSSL_free(str);
+    }
+
+    printf("DID OTT CREATE\n");
+
+    if(!did_ott_create(ctx))
+        return NULL;
+
+    return ctx->did;
+}
+
+void *did_create(void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
     method m[2];
     char *my_did_str = malloc(DID_LEN+1);
     int ret = 0;
@@ -89,7 +145,7 @@ int did_resolve(char* index, DID_DOCUMENT* did_doc){
 
 }
 
-static int did_update(char* index, void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
+int did_update(char* index, void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
     method m[2];
     int ret = 0;
 
@@ -113,7 +169,7 @@ static int did_update(char* index, void *sig1, size_t siglen1,int type1,void *si
     return DID_OK;
 }
 
-static int did_revoke(char* index){
+int did_revoke(char* index){
     int ret = 0;
     printf("DID OTT REVOKE\n");
     printf("%s\n", index);
@@ -126,40 +182,22 @@ static int did_revoke(char* index){
     return DID_OK;
 }
 
+int did_set_ctx_params(void *didctx, const OSSL_PARAM params[]){
+
+}
+
+int did_get_ctx_params(void *didctx, const OSSL_PARAM params[]){
+
+}
+
 const OSSL_DISPATCH did_crud_functions[] = {
+    {OSSL_FUNC_DID_NEWCTX, (void(*)(void))did_newctx},
     {OSSL_FUNC_DID_CREATE, (void(*)(void))did_create},
     {OSSL_FUNC_DID_RESOLVE, (void(*)(void))did_resolve},
     {OSSL_FUNC_DID_UPDATE, (void(*)(void))did_update},
     {OSSL_FUNC_DID_REVOKE, (void(*)(void))did_revoke},
-    { 0, NULL }
-};
-
-static void *did_fake_create(void *sig, int siglen){
-    printf("FAKE CREATE\n");
-    return NULL;
-
-}
-
-static void *did_fake_resolve(int index){
-    printf("FAKE RESOLVE\n");
-    return NULL;
-
-}
-
-static int did_fake_update(int index, void *sig, int siglen){
-    printf("FAKE UPDATE\n");
-    return 0;
-}
-
-static int did_fake_revoke(int index){
-    printf("FAKE REVOKE\n");
-    return 0;
-}
-
-const OSSL_DISPATCH did_fake_functions[] = {
-    {OSSL_FUNC_DID_CREATE, (void(*)(void))did_fake_create},
-    {OSSL_FUNC_DID_RESOLVE, (void(*)(void))did_fake_resolve},
-    {OSSL_FUNC_DID_UPDATE, (void(*)(void))did_fake_update},
-    {OSSL_FUNC_DID_REVOKE, (void(*)(void))did_fake_revoke},
+    {OSSL_FUNC_DID_FREECTX, (void(*)(void))did_freectx},
+    {OSSL_FUNC_DID_SET_PARAMS, (void(*)(void))did_set_ctx_params},
+    {OSSL_FUNC_DID_GET_PARAMS, (void(*)(void))did_get_ctx_params},
     { 0, NULL }
 };
