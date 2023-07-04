@@ -88,12 +88,7 @@ typedef enum {
     AssertionMethod
 } METHOD_TYPES;
 
-
-void did_document_init(did_document *did_doc);
-
-void did_document_free(did_document *did_doc);
-
-int did_ott_create(method *methods, char *did_new);
+int did_ott_create(DID_CTX ctx);
 
 int did_ott_resolve(did_document *didDocument, char *did);
 

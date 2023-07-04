@@ -55,7 +55,7 @@ void vc_freectx(void *vcctx)
         if (ctx->type != NULL)
         {
             OPENSSL_free(ctx->type);
-            ctx->id = NULL;
+            ctx->type = NULL;
         }
 
         if (ctx->issuer != NULL)

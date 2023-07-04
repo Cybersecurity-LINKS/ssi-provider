@@ -36,10 +36,148 @@ void did_freectx(void *didctx)
 
     DID_CTX *ctx = (DID_CTX *)didctx;
 
-    //TO DO
+    if (ctx != NULL)
+    {
+        if (ctx->atContext != NULL)
+        {
+            OPENSSL_free(ctx->atContext);
+            ctx->atContext = NULL;
+        }
+
+        if (ctx->id != NULL)
+        {
+            OPENSSL_free(ctx->id);
+            ctx->id = NULL;
+        }
+
+        if (ctx->created != NULL)
+        {
+            OPENSSL_free(ctx->created);
+            ctx->created = NULL;
+        }
+
+        if (ctx->authentication->id != NULL)
+        {
+            OPENSSL_free(ctx->authentication->id);
+            ctx->authentication->id = NULL;
+        }
+
+        if (ctx->authentication->type != NULL)
+        {
+            OPENSSL_free(ctx->authentication->type);
+            ctx->authentication->type = NULL;
+        }
+
+        if (ctx->authentication->controller != NULL)
+        {
+            OPENSSL_free(ctx->authentication->controller);
+            ctx->authentication->controller = NULL;
+        }
+
+        if (ctx->authentication->pkey != NULL)
+        {
+            OPENSSL_free(ctx->authentication->pkey);
+            ctx->authentication->pkey = NULL;
+        }
+
+        if (ctx->assertion->id != NULL)
+        {
+            OPENSSL_free(ctx->assertion->id);
+            ctx->assertion->id = NULL;
+        }
+
+        if (ctx->assertion->type != NULL)
+        {
+            OPENSSL_free(ctx->assertion->type);
+            ctx->assertion->type = NULL;
+        }
+
+        if (ctx->assertion->controller != NULL)
+        {
+            OPENSSL_free(ctx->assertion->controller);
+            ctx->assertion->controller = NULL;
+        }
+
+        if (ctx->assertion->pkey != NULL)
+        {
+            OPENSSL_free(ctx->assertion->pkey);
+            ctx->assertion->pkey = NULL;
+        }
+    }
 }
 
-void *did_create(void *didctx, OSSL_PARAM params[]){
+char *did_create(void *didctx, OSSL_PARAM params[]){
+
+    printf("DID OTT CREATE\n");
+    
+    const OSSL_PARAM *p;
+    DID_CTX *ctx = (DID_CTX *)didctx;
+
+    /* @Context */
+    ctx->atContext = OPENSSL_strdup(CONTEXT_DID_V1);
+
+    /* created */
+    time_t now = time(0);
+    ctx->issuanceDate = (char *)OPENSSL_zalloc(100);
+    strftime(ctx->issuanceDate, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+
+    /* authentication public key */
+    p = OSSL_PARAM_locate_const(params, OSSL_DID_PARAM_AUTHN_METH_PKEY);
+    if (p != NULL)
+    {
+        char *str = NULL;
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
+            goto fail;
+        ctx->authentication->pkey = OPENSSL_strdup(str);
+        OPENSSL_free(str);
+    }
+
+    /* assertion public key */
+    p = OSSL_PARAM_locate_const(params, OSSL_DID_PARAM_ASSRTN_METH_PKEY);
+    if (p != NULL)
+    {
+        char *str = NULL;
+        if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
+            goto fail;
+        ctx->assertion->pkey = OPENSSL_strdup(str);
+        OPENSSL_free(str);
+    }
+
+    if(!did_ott_create(ctx))
+        return NULL;
+
+    return ctx->did;
+}
+
+int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
+
+    DID_CTX *ctx = (DID_CTX *)didctx;
+
+    int ret;
+    printf("DID OTT RESOLVE\n");
+    
+    if (did == NULL) {
+        return DID_INTERNAL_ERROR;
+    }
+
+    ret = did_ott_resolve(ctx);
+    if (ret == DID_RESOLVE_ERROR)
+        return 0;
+    else if (ret == DID_RESOLVE_REVOKED)
+        return 0;
+    else if (ret == DID_RESOLVE_NOT_FOUND)
+        return 0;
+
+    /* return the fields of the DID DOCUMENT through params[] */
+    if(!did_get_ctx_params((void *)ctx, params))
+        return 0;
+
+    return 1;
+}
+
+char* did_update(void *didctx, char *did, OSSL_PARAM params[]) {
+
+    printf("DID OTT UPDATE\n");
 
     const OSSL_PARAM *p;
     DID_CTX *ctx = (DID_CTX *)didctx;
@@ -74,107 +212,20 @@ void *did_create(void *didctx, OSSL_PARAM params[]){
         OPENSSL_free(str);
     }
 
-    printf("DID OTT CREATE\n");
-
-    if(!did_ott_create(ctx))
+    if(!did_ott_update(ctx, did))
         return NULL;
 
     return ctx->did;
 }
 
-void *did_create(void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
-    method m[2];
-    char *my_did_str = malloc(DID_LEN+1);
-    int ret = 0;
-
-    m[0].method_type = AuthenticationMethod;
-    m[0].pk_pem.p = (unsigned char *) sig1;
-    m[0].pk_pem.len = siglen1;
-    m[0].type = type1;
-
-    m[1].method_type = AssertionMethod;
-    m[1].pk_pem.p = (unsigned char *) sig2;
-    m[1].pk_pem.len = siglen2;
-    m[1].type = type2;
+int did_revoke(void *didctx){
     
-    printf("DID OTT CREATE\n");
-    
-    ret = did_ott_create(m,my_did_str);
-    if(ret != OTT_OK)
-        return NULL;
-    return my_did_str;
-}
-
-int did_resolve(char* index, DID_DOCUMENT* did_doc){
-    int ret;
-    unsigned char* sig1 = NULL;
-    unsigned char* sig2 = NULL;
-    printf("DID OTT RESOLVE\n");
-    
-    if (index == NULL) {
-        return DID_INTERNAL_ERROR;
-    }
-    did_document *didDocument = NULL;
-    didDocument = calloc(1, sizeof(did_document));
-    if (didDocument == NULL) {
-        return DID_INTERNAL_ERROR;
-    }
-    did_document_init(didDocument);
-
-    ret = did_ott_resolve(didDocument,index);
-    if (ret == DID_RESOLVE_ERROR)
-        return DID_INTERNAL_ERROR;
-    else if (ret == DID_RESOLVE_REVOKED)
-        return DID_REVOKED;
-    else if (ret == DID_RESOLVE_NOT_FOUND)
-        return DID_NOT_FOUD;
-
-    if(didDocument->authMethod.pk_pem.p == NULL || didDocument->assertionMethod.pk_pem.p == NULL)
-        return DID_INTERNAL_ERROR;
-    
-    sig1 = (unsigned char *) strdup(didDocument->authMethod.pk_pem.p);
-    sig2 = (unsigned char *) strdup(didDocument->assertionMethod.pk_pem.p);
-
-    //set the keys in the DID_DOCUMENT structure
-    if(!DID_DOCUMENT_set(did_doc,sig1, didDocument->authMethod.pk_pem.len, didDocument->authMethod.type, sig2, didDocument->assertionMethod.pk_pem.len, didDocument->assertionMethod.type)){
-        printf("DID_DOCUMENT ERROR\n");
-        return DID_INTERNAL_ERROR;
-    } 
-    did_document_free(didDocument);
-    return DID_OK;
-
-}
-
-int did_update(char* index, void *sig1, size_t siglen1,int type1,void *sig2, size_t siglen2,int type2){
-    method m[2];
-    int ret = 0;
-
-    m[0].method_type = AuthenticationMethod;
-    m[0].pk_pem.p = (unsigned char *) sig1;
-    m[0].pk_pem.len = siglen1;
-    m[0].type = type1;
-
-    m[1].method_type = AssertionMethod;
-    m[1].pk_pem.p = (unsigned char *) sig2;
-    m[1].pk_pem.len = siglen2;
-    m[1].type = type2;
-    
-    
-    printf("DID OTT UPDATE\n");
-    
-    ret = did_ott_update(m,index);
-    if(ret != DID_UPDATE_OK){
-        return DID_INTERNAL_ERROR;
-    }
-    return DID_OK;
-}
-
-int did_revoke(char* index){
     int ret = 0;
     printf("DID OTT REVOKE\n");
-    printf("%s\n", index);
+    printf("%s\n",did);
 
-    ret = did_ott_revoke(index);
+    DID_CTX *ctx = (DID_CTX *)didctx;
+    ret = did_ott_revoke(ctx);
 
     if(ret != DID_REVOKE_OK){
         return DID_INTERNAL_ERROR;
@@ -184,10 +235,64 @@ int did_revoke(char* index){
 
 int did_set_ctx_params(void *didctx, const OSSL_PARAM params[]){
 
+    return 1;
 }
 
 int did_get_ctx_params(void *didctx, const OSSL_PARAM params[]){
 
+    DID_CTX *ctx = (DID_CTX *)didctx;
+    OSSL_PARAM *p;
+
+    if (ctx == NULL)
+        return 0;
+    if (params == NULL)
+        return 1;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_CONTEXT);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->atContext))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ID);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->id))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_CREATED);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->created))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_ID);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->id))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_TYPE);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->type))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_CONTROLLER);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->controller))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_PKEY);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->pkey))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_ID);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->id))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_TYPE);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->type))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_CONTROLLER);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->controller))
+        return 0;
+
+    p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_PKEY);
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->pkey))
+        return 0;
+
+    return 1;  
 }
 
 const OSSL_DISPATCH did_crud_functions[] = {
