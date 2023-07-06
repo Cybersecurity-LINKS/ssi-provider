@@ -1,8 +1,8 @@
 #include <openssl/core.h>
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
+#include <openssl/err.h>
 #include <openssl/params.h>
-#include <openssl/evp_ssi.h>
 #include "did_method.h"
 
 static OSSL_FUNC_did_newctx_fn did_newctx;
@@ -118,8 +118,8 @@ char *did_create(void *didctx, OSSL_PARAM params[]){
 
     /* created */
     time_t now = time(0);
-    ctx->issuanceDate = (char *)OPENSSL_zalloc(100);
-    strftime(ctx->issuanceDate, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+    ctx->created = (char *)OPENSSL_zalloc(100);
+    strftime(ctx->created, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     /* authentication public key */
     p = OSSL_PARAM_locate_const(params, OSSL_DID_PARAM_AUTHN_METH_PKEY);
@@ -144,9 +144,11 @@ char *did_create(void *didctx, OSSL_PARAM params[]){
     }
 
     if(!did_ott_create(ctx))
-        return NULL;
+        goto fail;
 
-    return ctx->did;
+    return ctx->id;
+fail:
+    return NULL;
 }
 
 int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
@@ -157,10 +159,10 @@ int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     printf("DID OTT RESOLVE\n");
     
     if (did == NULL) {
-        return DID_INTERNAL_ERROR;
+        return 0;
     }
 
-    ret = did_ott_resolve(ctx);
+    ret = did_ott_resolve(ctx, did);
     if (ret == DID_RESOLVE_ERROR)
         return 0;
     else if (ret == DID_RESOLVE_REVOKED)
@@ -175,7 +177,7 @@ int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     return 1;
 }
 
-char* did_update(void *didctx, char *did, OSSL_PARAM params[]) {
+char* did_update(void *didctx, OSSL_PARAM params[]) {
 
     printf("DID OTT UPDATE\n");
 
@@ -187,8 +189,8 @@ char* did_update(void *didctx, char *did, OSSL_PARAM params[]) {
 
     /* created */
     time_t now = time(0);
-    ctx->issuanceDate = (char *)OPENSSL_zalloc(100);
-    strftime(ctx->issuanceDate, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+    ctx->created = (char *)OPENSSL_zalloc(100);
+    strftime(ctx->created, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     /* authentication public key */
     p = OSSL_PARAM_locate_const(params, OSSL_DID_PARAM_AUTHN_METH_PKEY);
@@ -212,25 +214,25 @@ char* did_update(void *didctx, char *did, OSSL_PARAM params[]) {
         OPENSSL_free(str);
     }
 
-    if(!did_ott_update(ctx, did))
-        return NULL;
+    if(!did_ott_update(ctx))
+        goto fail;
 
-    return ctx->did;
+    return ctx->id;
+fail:
+    return NULL;
 }
 
 int did_revoke(void *didctx){
     
-    int ret = 0;
-    printf("DID OTT REVOKE\n");
-    printf("%s\n",did);
-
     DID_CTX *ctx = (DID_CTX *)didctx;
-    ret = did_ott_revoke(ctx);
+    
+    printf("DID OTT REVOKE\n");
+    printf("%s\n",ctx->id);
 
-    if(ret != DID_REVOKE_OK){
-        return DID_INTERNAL_ERROR;
-    }
-    return DID_OK;
+    if(!did_ott_revoke(ctx))
+        return 0;
+
+    return 1;
 }
 
 int did_set_ctx_params(void *didctx, const OSSL_PARAM params[]){
@@ -238,7 +240,7 @@ int did_set_ctx_params(void *didctx, const OSSL_PARAM params[]){
     return 1;
 }
 
-int did_get_ctx_params(void *didctx, const OSSL_PARAM params[]){
+int did_get_ctx_params(void *didctx, OSSL_PARAM params[]){
 
     DID_CTX *ctx = (DID_CTX *)didctx;
     OSSL_PARAM *p;
@@ -302,7 +304,7 @@ const OSSL_DISPATCH did_crud_functions[] = {
     {OSSL_FUNC_DID_UPDATE, (void(*)(void))did_update},
     {OSSL_FUNC_DID_REVOKE, (void(*)(void))did_revoke},
     {OSSL_FUNC_DID_FREECTX, (void(*)(void))did_freectx},
-    {OSSL_FUNC_DID_SET_PARAMS, (void(*)(void))did_set_ctx_params},
-    {OSSL_FUNC_DID_GET_PARAMS, (void(*)(void))did_get_ctx_params},
+    {OSSL_FUNC_DID_SET_CTX_PARAMS, (void(*)(void))did_set_ctx_params},
+    {OSSL_FUNC_DID_GET_CTX_PARAMS, (void(*)(void))did_get_ctx_params},
     { 0, NULL }
 };

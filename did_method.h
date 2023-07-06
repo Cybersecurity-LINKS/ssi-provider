@@ -73,7 +73,7 @@ typedef struct did_document {
     char *created;  
     method *authentication;
     method *assertion; 
-}DID_CTX;
+} DID_CTX;
 
 typedef enum {
     //da inserirne anche altre se servono
@@ -88,13 +88,13 @@ typedef enum {
     AssertionMethod
 } METHOD_TYPES;
 
-int did_ott_create(DID_CTX ctx);
+int did_ott_create(DID_CTX *ctx);
 
-int did_ott_resolve(did_document *didDocument, char *did);
+int did_ott_resolve(DID_CTX *ctx, char *did);
 
-int did_ott_update(method *methods,char * did);
+int did_ott_update(DID_CTX *ctx);
 
-int did_ott_revoke(char *did);
+int did_ott_revoke(DID_CTX *ctx);
 
 #endif //DID_METHOD_H
 

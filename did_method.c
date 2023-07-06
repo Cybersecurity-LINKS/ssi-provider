@@ -1,6 +1,8 @@
 #include "did_method.h"
 #include <time.h>
 #include <sys/time.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 
 static int get_key_type(EVP_PKEY *key)
 {
@@ -40,14 +42,14 @@ static char *key_types_to_string(KEY_TYPES type)
     }
 }
 
-static char *did_doc_fill(DID_CTX ctx)
+static char *did_doc_fill(DID_CTX *ctx)
 {
     cJSON *auth_method = NULL;
     cJSON *assrtn_method = NULL;
-    cJSON *atContext_cJson = NULL;
+    /* cJSON *atContext_cJson = NULL;
     char time_buf[100];
     char id_key[MAX_KEY_ID_LEN];
-    char index_key[KEY_INDEX_LEN];
+    char index_key[KEY_INDEX_LEN]; */
 
     cJSON *did_doc = cJSON_CreateObject();
     if (did_doc == NULL)
@@ -92,9 +94,9 @@ static char *did_doc_fill(DID_CTX ctx)
     }
     
     cJSON_AddStringToObject(assrtn_method, "id", ctx->assertion->id);
-    cJSON_AddStringToObject(assrtn_method, "type", ctx->assrtn->type);
-    cJSON_AddStringToObject(assrtn_method, "controller", ctx->assrtn->controller);
-    cJSON_AddStringToObject(assrtn_method, "publicKeyPem", ctx->assrtn->pkey);
+    cJSON_AddStringToObject(assrtn_method, "type", ctx->assertion->type);
+    cJSON_AddStringToObject(assrtn_method, "controller", ctx->assertion->controller);
+    cJSON_AddStringToObject(assrtn_method, "publicKeyPem", ctx->assertion->pkey);
     cJSON_AddItemToObject(did_doc, "assertionMethod", assrtn_method);
 
     char *did_doc_stream = cJSON_Print(did_doc);
@@ -214,7 +216,7 @@ int did_ott_create(DID_CTX *ctx)
     OTT_channel ch_send;
     BIO *authn_pubkey;
     BIO *assrtn_pubkey;
-    int ret;
+    //int ret;
     char id_key[MAX_KEY_ID_LEN];
     char index_key[KEY_INDEX_LEN];
 
@@ -244,7 +246,7 @@ int did_ott_create(DID_CTX *ctx)
     strncat(did, DID_PREFIX, DID_PREFIX_LEN);
     strncat(did, index, INDEX_HEX_SIZE);
 
-    ctx->did = OPENSSL_strdup(did);
+    ctx->id = OPENSSL_strdup(did);
 
     memset(id_key, 0, MAX_KEY_ID_LEN);
     strncat(id_key, did, DID_LEN);
@@ -255,7 +257,7 @@ int did_ott_create(DID_CTX *ctx)
     ctx->authentication->id = OPENSSL_strdup(id_key);
 
     authn_pubkey = BIO_new_mem_buf(ctx->authentication->pkey, -1);
-    if((ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL)) == -1){
+    if((ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
@@ -272,7 +274,7 @@ int did_ott_create(DID_CTX *ctx)
     ctx->assertion->id = OPENSSL_strdup(id_key);
 
     assrtn_pubkey = BIO_new_mem_buf(ctx->assertion->pkey, -1);
-    if((ret = get_key_type(PEM_read_bio_PUBKEY(assrtn_pubkey, NULL, NULL, NULL)) == -1){
+    if((ret = get_key_type(PEM_read_bio_PUBKEY(assrtn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
@@ -304,7 +306,7 @@ fail:
     return 0;
 }
 
-int did_ott_resolve(DID_CTX *ctx)
+int did_ott_resolve(DID_CTX *ctx, char *did)
 {
     char hex_index[INDEX_HEX_SIZE];
     uint8_t index[INDEX_SIZE];
@@ -359,10 +361,6 @@ int did_ott_resolve(DID_CTX *ctx)
     fprintf(stdout, "\n\nReceived DID Document: \n");
     fprintf(stdout, "%s\n", read_buff);
 
-    uint32_t start_u, end_u;
-    struct timespec start, finish, delta;
-
-    clock_gettime(CLOCK_REALTIME, &start);
 
     // parsing
     cJSON *did_document_json = cJSON_Parse((const char *)read_buff);
@@ -379,11 +377,11 @@ int did_ott_resolve(DID_CTX *ctx)
     }
 
     // atContext
-    const cJSON *atContext_cJSON = NULL;
-    atContext = cJSON_GetObjectItemCaseSensitive(did_document_json, "@context");
+    cJSON *atContext_cJSON = NULL;
+    atContext_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "@context");
     if (cJSON_IsString(atContext_cJSON) && atContext_cJSON->valuestring != NULL)
     {
-        ctx->atContext = OPENSSL_strdup(atContext_cJSON);
+        ctx->atContext = OPENSSL_strdup(atContext_cJSON->valuestring);
     }
     else
     {
@@ -391,11 +389,11 @@ int did_ott_resolve(DID_CTX *ctx)
     }
 
     // id
-    const cJSON *id_cJSON = NULL;
+    cJSON *id_cJSON = NULL;
     id_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "id");
     if (cJSON_IsString(id_cJSON) && id_cJSON->valuestring != NULL)
     {
-        ctx->id = OPENSSL_strdup(id_cJSON);
+        ctx->id = OPENSSL_strdup(id_cJSON->valuestring);
     }
     else
     {
@@ -403,11 +401,11 @@ int did_ott_resolve(DID_CTX *ctx)
     }
 
     // created
-    const cJSON *created_cJSON = NULL;
+    cJSON *created_cJSON = NULL;
     created_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "created");
     if (cJSON_IsString(created_cJSON) && created_cJSON->valuestring != NULL)
     {
-        ctx->created = OPENSSL_strdup(created_cJSON);
+        ctx->created = OPENSSL_strdup(created_cJSON->valuestring);
     }
     else
     {
@@ -415,11 +413,11 @@ int did_ott_resolve(DID_CTX *ctx)
     }
 
     // methods
-    const cJSON *method_cJSON = NULL;
-    const cJSON *id_method_cJSON = NULL;
-    const cJSON *type_cJSON = NULL;
-    const cJSON *controller_cJSON = NULL;
-    const cJSON *pk_cJSON = NULL;
+    cJSON *method_cJSON = NULL;
+    cJSON *id_method_cJSON = NULL;
+    cJSON *type_cJSON = NULL;
+    cJSON *controller_cJSON = NULL;
+    cJSON *pk_cJSON = NULL;
 
     // AuthenticationMethod:
     method_cJSON = cJSON_GetObjectItemCaseSensitive(did_document_json, "authenticationMethod");
@@ -519,7 +517,7 @@ int did_ott_resolve(DID_CTX *ctx)
     return DID_RESOLVE_OK;
 }
 
-int did_ott_update(DID_CTX *ctx, char *did)
+int did_ott_update(DID_CTX *ctx)
 {
     char newdid[DID_LEN] = "";
     uint8_t *index_bin;
@@ -530,6 +528,8 @@ int did_ott_update(DID_CTX *ctx, char *did)
     uint8_t write_buff[REVOKE_MSG_SIZE];
     BIO *authn_pubkey;
     BIO *assrtn_pubkey;
+    char id_key[MAX_KEY_ID_LEN];
+    char index_key[KEY_INDEX_LEN];
     
     fprintf(stdout, "UPDATE\n");
     /*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
@@ -563,10 +563,10 @@ int did_ott_update(DID_CTX *ctx, char *did)
     strncat(newdid, DID_PREFIX, DID_PREFIX_LEN);
     strncat(newdid, index_hex, INDEX_HEX_SIZE);
     
-    ctx->did = OPENSSL_strdup(did);
+    ctx->id = OPENSSL_strdup(newdid);
 
     memset(id_key, 0, MAX_KEY_ID_LEN);
-    strncat(id_key, did, DID_LEN);
+    strncat(id_key, newdid, DID_LEN);
     strcat(id_key, KEY_ID_PREFIX);
     snprintf(index_key, KEY_INDEX_LEN, "%d", 0);
     strncat(id_key, index_key, KEY_INDEX_LEN);
@@ -574,16 +574,16 @@ int did_ott_update(DID_CTX *ctx, char *did)
     ctx->authentication->id = OPENSSL_strdup(id_key);
 
     authn_pubkey = BIO_new_mem_buf(ctx->authentication->pkey, -1);
-    if(ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL)) == -1){
+    if((ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
     ctx->authentication->type = OPENSSL_strdup(key_types_to_string(ret));
       
-    ctx->authentication->controller = OPENSSL_strdup(did);
+    ctx->authentication->controller = OPENSSL_strdup(newdid);
 
     memset(id_key, 0, MAX_KEY_ID_LEN);
-    strncat(id_key, did, DID_LEN);
+    strncat(id_key, newdid, DID_LEN);
     strcat(id_key, KEY_ID_PREFIX);
     snprintf(index_key, KEY_INDEX_LEN, "%d", 1);
     strncat(id_key, index_key, KEY_INDEX_LEN);
@@ -591,13 +591,13 @@ int did_ott_update(DID_CTX *ctx, char *did)
     ctx->assertion->id = OPENSSL_strdup(id_key);
 
     assrtn_pubkey = BIO_new_mem_buf(ctx->assertion->pkey, -1);
-    if((ret = get_key_type(PEM_read_bio_PUBKEY(assrtn_pubkey, NULL, NULL, NULL)) == -1){
+    if((ret = get_key_type(PEM_read_bio_PUBKEY(assrtn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
     ctx->assertion->type = OPENSSL_strdup(key_types_to_string(ret));
       
-    ctx->assertion->controller = OPENSSL_strdup(did);
+    ctx->assertion->controller = OPENSSL_strdup(newdid);
 
     // create the updated did document
     char *did_doc = did_doc_fill(ctx);
@@ -630,7 +630,6 @@ fail:
 
 int did_ott_revoke(DID_CTX *ctx)
 {
-    char hex_index[INDEX_HEX_SIZE];
     OTT_channel ch_send;
     uint8_t write_buff[REVOKE_MSG_SIZE];
     uint8_t ret = 0;
@@ -656,10 +655,10 @@ int did_ott_revoke(DID_CTX *ctx)
         goto fail;
     }
 
-    return DID_REVOKE_OK;
+    return 1;
 
 fail:
-    return (ret);
+    return 0;
 }
 
 
