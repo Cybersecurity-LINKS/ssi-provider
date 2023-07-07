@@ -80,10 +80,10 @@ static char *did_doc_fill(DID_CTX *ctx)
         goto fail;
     }
     
-    cJSON_AddStringToObject(auth_method, "id", ctx->authentication->id);
-    cJSON_AddStringToObject(auth_method, "type", ctx->authentication->type);
-    cJSON_AddStringToObject(auth_method, "controller", ctx->authentication->controller);
-    cJSON_AddStringToObject(auth_method, "publicKeyPem", ctx->authentication->pkey);
+    cJSON_AddStringToObject(auth_method, "id", ctx->authentication.id);
+    cJSON_AddStringToObject(auth_method, "type", ctx->authentication.type);
+    cJSON_AddStringToObject(auth_method, "controller", ctx->authentication.controller);
+    cJSON_AddStringToObject(auth_method, "publicKeyPem", ctx->authentication.pkey);
     cJSON_AddItemToObject(did_doc, "authenticationMethod", auth_method);
 
     // AssertionMethod
@@ -93,10 +93,10 @@ static char *did_doc_fill(DID_CTX *ctx)
         goto fail;
     }
     
-    cJSON_AddStringToObject(assrtn_method, "id", ctx->assertion->id);
-    cJSON_AddStringToObject(assrtn_method, "type", ctx->assertion->type);
-    cJSON_AddStringToObject(assrtn_method, "controller", ctx->assertion->controller);
-    cJSON_AddStringToObject(assrtn_method, "publicKeyPem", ctx->assertion->pkey);
+    cJSON_AddStringToObject(assrtn_method, "id", ctx->assertion.id);
+    cJSON_AddStringToObject(assrtn_method, "type", ctx->assertion.type);
+    cJSON_AddStringToObject(assrtn_method, "controller", ctx->assertion.controller);
+    cJSON_AddStringToObject(assrtn_method, "publicKeyPem", ctx->assertion.pkey);
     cJSON_AddItemToObject(did_doc, "assertionMethod", assrtn_method);
 
     char *did_doc_stream = cJSON_Print(did_doc);
@@ -254,16 +254,16 @@ int did_ott_create(DID_CTX *ctx)
     snprintf(index_key, KEY_INDEX_LEN, "%d", 0);
     strncat(id_key, index_key, KEY_INDEX_LEN);
 
-    ctx->authentication->id = OPENSSL_strdup(id_key);
+    ctx->authentication.id = OPENSSL_strdup(id_key);
 
-    authn_pubkey = BIO_new_mem_buf(ctx->authentication->pkey, -1);
+    authn_pubkey = BIO_new_mem_buf(ctx->authentication.pkey, -1);
     if((ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
-    ctx->authentication->type = OPENSSL_strdup(key_types_to_string(ret));
+    ctx->authentication.type = OPENSSL_strdup(key_types_to_string(ret));
       
-    ctx->authentication->controller = OPENSSL_strdup(did);
+    ctx->authentication.controller = OPENSSL_strdup(did);
 
     memset(id_key, 0, MAX_KEY_ID_LEN);
     strncat(id_key, did, DID_LEN);
@@ -271,16 +271,16 @@ int did_ott_create(DID_CTX *ctx)
     snprintf(index_key, KEY_INDEX_LEN, "%d", 1);
     strncat(id_key, index_key, KEY_INDEX_LEN);
 
-    ctx->assertion->id = OPENSSL_strdup(id_key);
+    ctx->assertion.id = OPENSSL_strdup(id_key);
 
-    assrtn_pubkey = BIO_new_mem_buf(ctx->assertion->pkey, -1);
+    assrtn_pubkey = BIO_new_mem_buf(ctx->assertion.pkey, -1);
     if((ret = get_key_type(PEM_read_bio_PUBKEY(assrtn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
-    ctx->assertion->type = OPENSSL_strdup(key_types_to_string(ret));
+    ctx->assertion.type = OPENSSL_strdup(key_types_to_string(ret));
       
-    ctx->assertion->controller = OPENSSL_strdup(did);
+    ctx->assertion.controller = OPENSSL_strdup(did);
 
     char *did_doc = did_doc_fill(ctx);
     if (did_doc == NULL)
@@ -428,7 +428,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     id_method_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "id");
     if (cJSON_IsString(id_method_cJSON) && id_method_cJSON->valuestring != NULL)
     {
-        ctx->authentication->id = OPENSSL_strdup(id_method_cJSON->valuestring);
+        ctx->authentication.id = OPENSSL_strdup(id_method_cJSON->valuestring);
     }
     else
     {
@@ -438,7 +438,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     type_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "type");
     if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL)
     {
-        ctx->authentication->type = OPENSSL_strdup(type_cJSON->valuestring);
+        ctx->authentication.type = OPENSSL_strdup(type_cJSON->valuestring);
     }
     else
     {
@@ -448,7 +448,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     controller_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "controller");
     if (cJSON_IsString(controller_cJSON) && controller_cJSON->valuestring != NULL)
     {
-        ctx->authentication->controller = OPENSSL_strdup(controller_cJSON->valuestring);
+        ctx->authentication.controller = OPENSSL_strdup(controller_cJSON->valuestring);
     }
     else
     {
@@ -458,7 +458,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     pk_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "publicKeyPem");
     if (cJSON_IsString(pk_cJSON) && pk_cJSON->valuestring != NULL)
     {
-        ctx->authentication->pkey = OPENSSL_strdup(pk_cJSON->valuestring);
+        ctx->authentication.pkey = OPENSSL_strdup(pk_cJSON->valuestring);
     }
     else
     {
@@ -475,7 +475,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     id_method_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "id");
     if (cJSON_IsString(id_method_cJSON) && id_method_cJSON->valuestring != NULL)
     {
-        ctx->assertion->id = OPENSSL_strdup(id_method_cJSON->valuestring);
+        ctx->assertion.id = OPENSSL_strdup(id_method_cJSON->valuestring);
     }
     else
     {
@@ -485,7 +485,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     type_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "type");
     if (cJSON_IsString(type_cJSON) && type_cJSON->valuestring != NULL)
     {
-       ctx->assertion->type = OPENSSL_strdup(id_method_cJSON->valuestring);
+       ctx->assertion.type = OPENSSL_strdup(id_method_cJSON->valuestring);
     }
     else
     {
@@ -495,7 +495,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     controller_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "controller");
     if (cJSON_IsString(controller_cJSON) && controller_cJSON->valuestring != NULL)
     {
-        ctx->assertion->controller = OPENSSL_strdup(controller_cJSON->valuestring);
+        ctx->assertion.controller = OPENSSL_strdup(controller_cJSON->valuestring);
     }
     else
     {
@@ -505,7 +505,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     pk_cJSON = cJSON_GetObjectItemCaseSensitive(method_cJSON, "publicKeyPem");
     if (cJSON_IsString(pk_cJSON) && pk_cJSON->valuestring != NULL)
     {
-        ctx->assertion->pkey = OPENSSL_strdup(pk_cJSON->valuestring);
+        ctx->assertion.pkey = OPENSSL_strdup(pk_cJSON->valuestring);
     }
     else
     {
@@ -571,16 +571,16 @@ int did_ott_update(DID_CTX *ctx)
     snprintf(index_key, KEY_INDEX_LEN, "%d", 0);
     strncat(id_key, index_key, KEY_INDEX_LEN);
 
-    ctx->authentication->id = OPENSSL_strdup(id_key);
+    ctx->authentication.id = OPENSSL_strdup(id_key);
 
-    authn_pubkey = BIO_new_mem_buf(ctx->authentication->pkey, -1);
+    authn_pubkey = BIO_new_mem_buf(ctx->authentication.pkey, -1);
     if((ret = get_key_type(PEM_read_bio_PUBKEY(authn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
-    ctx->authentication->type = OPENSSL_strdup(key_types_to_string(ret));
+    ctx->authentication.type = OPENSSL_strdup(key_types_to_string(ret));
       
-    ctx->authentication->controller = OPENSSL_strdup(newdid);
+    ctx->authentication.controller = OPENSSL_strdup(newdid);
 
     memset(id_key, 0, MAX_KEY_ID_LEN);
     strncat(id_key, newdid, DID_LEN);
@@ -588,16 +588,16 @@ int did_ott_update(DID_CTX *ctx)
     snprintf(index_key, KEY_INDEX_LEN, "%d", 1);
     strncat(id_key, index_key, KEY_INDEX_LEN);
 
-    ctx->assertion->id = OPENSSL_strdup(id_key);
+    ctx->assertion.id = OPENSSL_strdup(id_key);
 
-    assrtn_pubkey = BIO_new_mem_buf(ctx->assertion->pkey, -1);
+    assrtn_pubkey = BIO_new_mem_buf(ctx->assertion.pkey, -1);
     if((ret = get_key_type(PEM_read_bio_PUBKEY(assrtn_pubkey, NULL, NULL, NULL))) == -1){
         goto fail;
     }
 
-    ctx->assertion->type = OPENSSL_strdup(key_types_to_string(ret));
+    ctx->assertion.type = OPENSSL_strdup(key_types_to_string(ret));
       
-    ctx->assertion->controller = OPENSSL_strdup(newdid);
+    ctx->assertion.controller = OPENSSL_strdup(newdid);
 
     // create the updated did document
     char *did_doc = did_doc_fill(ctx);

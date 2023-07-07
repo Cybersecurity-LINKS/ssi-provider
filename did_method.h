@@ -71,8 +71,8 @@ typedef struct did_document {
     char *atContext;
     char *id;
     char *created;  
-    method *authentication;
-    method *assertion; 
+    method authentication;
+    method assertion; 
 } DID_CTX;
 
 typedef enum {

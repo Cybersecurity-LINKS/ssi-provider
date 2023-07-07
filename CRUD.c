@@ -56,52 +56,52 @@ void did_freectx(void *didctx)
             ctx->created = NULL;
         }
 
-        if (ctx->authentication->id != NULL)
+        if (ctx->authentication.id != NULL)
         {
-            OPENSSL_free(ctx->authentication->id);
-            ctx->authentication->id = NULL;
+            OPENSSL_free(ctx->authentication.id);
+            ctx->authentication.id = NULL;
         }
 
-        if (ctx->authentication->type != NULL)
+        if (ctx->authentication.type != NULL)
         {
-            OPENSSL_free(ctx->authentication->type);
-            ctx->authentication->type = NULL;
+            OPENSSL_free(ctx->authentication.type);
+            ctx->authentication.type = NULL;
         }
 
-        if (ctx->authentication->controller != NULL)
+        if (ctx->authentication.controller != NULL)
         {
-            OPENSSL_free(ctx->authentication->controller);
-            ctx->authentication->controller = NULL;
+            OPENSSL_free(ctx->authentication.controller);
+            ctx->authentication.controller = NULL;
         }
 
-        if (ctx->authentication->pkey != NULL)
+        if (ctx->authentication.pkey != NULL)
         {
-            OPENSSL_free(ctx->authentication->pkey);
-            ctx->authentication->pkey = NULL;
+            OPENSSL_free(ctx->authentication.pkey);
+            ctx->authentication.pkey = NULL;
         }
 
-        if (ctx->assertion->id != NULL)
+        if (ctx->assertion.id != NULL)
         {
-            OPENSSL_free(ctx->assertion->id);
-            ctx->assertion->id = NULL;
+            OPENSSL_free(ctx->assertion.id);
+            ctx->assertion.id = NULL;
         }
 
-        if (ctx->assertion->type != NULL)
+        if (ctx->assertion.type != NULL)
         {
-            OPENSSL_free(ctx->assertion->type);
-            ctx->assertion->type = NULL;
+            OPENSSL_free(ctx->assertion.type);
+            ctx->assertion.type = NULL;
         }
 
-        if (ctx->assertion->controller != NULL)
+        if (ctx->assertion.controller != NULL)
         {
-            OPENSSL_free(ctx->assertion->controller);
-            ctx->assertion->controller = NULL;
+            OPENSSL_free(ctx->assertion.controller);
+            ctx->assertion.controller = NULL;
         }
 
-        if (ctx->assertion->pkey != NULL)
+        if (ctx->assertion.pkey != NULL)
         {
-            OPENSSL_free(ctx->assertion->pkey);
-            ctx->assertion->pkey = NULL;
+            OPENSSL_free(ctx->assertion.pkey);
+            ctx->assertion.pkey = NULL;
         }
     }
 }
@@ -128,7 +128,7 @@ char *did_create(void *didctx, OSSL_PARAM params[]){
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
             goto fail;
-        ctx->authentication->pkey = OPENSSL_strdup(str);
+        ctx->authentication.pkey = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -139,7 +139,7 @@ char *did_create(void *didctx, OSSL_PARAM params[]){
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
             goto fail;
-        ctx->assertion->pkey = OPENSSL_strdup(str);
+        ctx->assertion.pkey = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -163,12 +163,18 @@ int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     }
 
     ret = did_ott_resolve(ctx, did);
-    if (ret == DID_RESOLVE_ERROR)
+    if (ret == DID_RESOLVE_ERROR){
+    	printf("DID RESOLVE INTERNAL ERROR\n");
         return 0;
-    else if (ret == DID_RESOLVE_REVOKED)
+    }
+    else if (ret == DID_RESOLVE_REVOKED){
+    	printf("DID DOCUMENT REVOKED\n");
         return 0;
-    else if (ret == DID_RESOLVE_NOT_FOUND)
+    }
+    else if (ret == DID_RESOLVE_NOT_FOUND){
+    	printf("DID DOCUMENT NOT FOUND\n");
         return 0;
+    }
 
     /* return the fields of the DID DOCUMENT through params[] */
     if(!did_get_ctx_params((void *)ctx, params))
@@ -199,7 +205,7 @@ char* did_update(void *didctx, OSSL_PARAM params[]) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
             goto fail;
-        ctx->authentication->pkey = OPENSSL_strdup(str);
+        ctx->authentication.pkey = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -210,7 +216,7 @@ char* did_update(void *didctx, OSSL_PARAM params[]) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_DID_FIELD))
             goto fail;
-        ctx->assertion->pkey = OPENSSL_strdup(str);
+        ctx->assertion.pkey = OPENSSL_strdup(str);
         OPENSSL_free(str);
     }
 
@@ -263,35 +269,35 @@ int did_get_ctx_params(void *didctx, OSSL_PARAM params[]){
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_ID);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->id))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication.id))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_TYPE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->type))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication.type))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_CONTROLLER);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->controller))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication.controller))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_AUTHN_METH_PKEY);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication->pkey))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->authentication.pkey))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_ID);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->id))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion.id))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_TYPE);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->type))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion.type))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_CONTROLLER);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->controller))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion.controller))
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_DID_PARAM_ASSRTN_METH_PKEY);
-    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion->pkey))
+    if (p != NULL && !OSSL_PARAM_set_utf8_ptr(p, (const char *)ctx->assertion.pkey))
         return 0;
 
     return 1;  

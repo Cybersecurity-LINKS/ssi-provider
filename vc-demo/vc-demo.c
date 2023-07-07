@@ -97,7 +97,7 @@ int main()
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_ID, "http://example.com/credentials/1", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_ISSUER, "http://example.com/issuer/1", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_EXPIRATION_DATE, "2025-01-01T12:00:00Z", 0);
-	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_SUBJECT, "did:ott:BB6E2AD0D0EF689D664379FF07A5DAEF7150CD6462A5CCE9FF6C5EC582B66C25", 0);
+	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_SUBJECT, "did:ott:48B0425B51E1856F315B4A79963ED6E1DE27C876C0BD10A9AA1BC3110DE3A470", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_VERIFICATION_METHOD, "http://example.com/issuer/1#key-2", 0);
 	params[params_n] = OSSL_PARAM_construct_end();
 

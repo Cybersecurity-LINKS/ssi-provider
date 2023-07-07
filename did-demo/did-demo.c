@@ -5,332 +5,110 @@
 #include "openssl/core_dispatch.h"
 #include "openssl/core_names.h"
 #include "openssl/evp_ssi.h"
-#include "openssl/store.h"
-#include "openssl/encoder.h"
-#include "time.h"
-#include "sys/time.h"
+#include <openssl/bio.h>
 
-#define SET_EXPECT(expect, val) ((expect) = (expect) < 0 ? (val) : ((expect) == (val) ? (val) : 0))
-
-EVP_PKEY *load_pubkey(const char *uri, OSSL_LIB_CTX *libctx);
-
-int get_key_type(EVP_PKEY *key) {
-    int ret = 0;
-    ret = EVP_PKEY_get_id(key);
-    // printf("key type %d\n", ret);
-    // const char * name1 = EVP_PKEY_get0_type_name(key2);
-    switch (ret) {
-        case EVP_PKEY_RSA:
-            ret = 0;
-            break;
-        case EVP_PKEY_EC:
-            ret = 1;
-            break;
-        case EVP_PKEY_ED25519:
-            ret = 2;
-            break;
-        default:
-            ret = -1;
-            break;
-    }
-    return ret;
-}
-
-int load_key(DID_DOCUMENT *did_doc, const char *infile1, const char *infile2, OSSL_LIB_CTX *libctx) {
-    EVP_PKEY *key1 = NULL, *key2 = NULL;
-    OSSL_ENCODER_CTX *ectx1 = NULL, *ectx2 = NULL;
-    EVP_PKEY_CTX *pctx1 = NULL, *pctx2 = NULL;
-    unsigned char *sig1 = NULL, *sig2 = NULL;
-    size_t len1, len2;
-    int type1, type2;
-    int ret = 0;
-
-    // load the authorization key
-    key1 = load_pubkey(infile1, libctx);
-    if (key1 == NULL) {
-        printf("load key failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    pctx1 = EVP_PKEY_CTX_new_from_pkey(NULL, key1, NULL);
-    if (pctx1 == NULL) {
-        printf("EVP_PKEY_CTX_new_from_pkey failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    if (!EVP_PKEY_public_check(pctx1)) {
-        printf("check key failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    type1 = get_key_type(key1);
-    if (type1 == -1) {
-        printf("check key type failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    ectx1 = OSSL_ENCODER_CTX_new_for_pkey(key1, OSSL_KEYMGMT_SELECT_PUBLIC_KEY | OSSL_KEYMGMT_SELECT_DOMAIN_PARAMETERS,
-                                          "PEM", "SubjectPublicKeyInfo", NULL);
-    if (ectx1 == NULL) {
-        printf("OSSL_ENCODER_CTX failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    ret = OSSL_ENCODER_to_data(ectx1, &sig1, &len1);
-    if (ret == 0) {
-        printf("OSSL_ENCODER failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    sig1[len1] = '\0';
-
-    // load the assertion key
-    key2 = load_pubkey(infile2, libctx);
-    if (key2 == NULL) {
-        printf("load key failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    pctx2 = EVP_PKEY_CTX_new_from_pkey(NULL, key2, NULL);
-    if (pctx2 == NULL) {
-        printf("EVP_PKEY_CTX_new_from_pkey failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    if (!EVP_PKEY_public_check(pctx2)) {
-        printf("check key failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    type2 = get_key_type(key2);
-    if (type2 == -1) {
-        printf("check key type failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    ectx2 = OSSL_ENCODER_CTX_new_for_pkey(key2, OSSL_KEYMGMT_SELECT_PUBLIC_KEY | OSSL_KEYMGMT_SELECT_DOMAIN_PARAMETERS,
-                                          "PEM", "SubjectPublicKeyInfo", NULL);
-    if (ectx2 == NULL) {
-        printf("OSSL_ENCODER_CTX failed\n");
-        ret = 0;
-        goto error;
-    }
-
-    ret = OSSL_ENCODER_to_data(ectx2, &sig2, &len2);
-    if (ret == 0) {
-        printf("OSSL_ENCODER failed\n");
-        ret = 0;
-        goto error;
-    }
-    sig2[len2] = '\0';
-
-    ret = DID_DOCUMENT_set(did_doc, sig1, len1, type1, sig2, len2, type2);
-
-    error:
-    OSSL_ENCODER_CTX_free(ectx1);
-    OSSL_ENCODER_CTX_free(ectx2);
-    EVP_PKEY_CTX_free(pctx1);
-    EVP_PKEY_CTX_free(pctx2);
-    EVP_PKEY_free(key1);
-    EVP_PKEY_free(key2);
-    return ret;
-}
-
-EVP_PKEY *load_pubkey(const char *uri, OSSL_LIB_CTX *libctx) {
-    EVP_PKEY *pkey = NULL;
-    OSSL_STORE_CTX *ctx = NULL;
-    OSSL_PARAM itp[2];
-    const OSSL_PARAM *params = NULL;
-    int cnt_expectations = 0;
-    int expect = -1;
-
-    cnt_expectations++;
-    SET_EXPECT(expect, OSSL_STORE_INFO_PUBKEY);
-
-    itp[0] = OSSL_PARAM_construct_utf8_string(OSSL_STORE_PARAM_INPUT_TYPE, "PEM", 0);
-    itp[1] = OSSL_PARAM_construct_end();
-    params = itp;
-
-    ctx = OSSL_STORE_open_ex(uri, libctx, NULL, NULL, NULL, params, NULL, NULL);
-    if (ctx == NULL) {
-        printf("Could not open file or uri for loading\n");
-    }
-
-    if (expect > 0 && !OSSL_STORE_expect(ctx, expect))
-        return NULL;
-
-    while (!OSSL_STORE_eof(ctx)) {
-        OSSL_STORE_INFO *info = OSSL_STORE_load(ctx);
-        int type;
-
-        /*
-         * This can happen (for example) if we attempt to load a file with
-         * multiple different types of things in it - but the thing we just
-         * tried to load wasn't one of the ones we wanted, e.g. if we're trying
-         * to load a certificate but the file has both the private key and the
-         * certificate in it. We just retry until eof.
-         */
-        if (info == NULL) {
-            continue;
-        }
-        type = OSSL_STORE_INFO_get_type(info);
-        switch (type) {
-            case OSSL_STORE_INFO_PUBKEY:
-                pkey = OSSL_STORE_INFO_get1_PUBKEY(info);
-                break;
-            default:
-                /* skip any other type */
-                break;
-        }
-    }
-    OSSL_STORE_close(ctx);
-    return pkey;
-}
+BIO *bio_err = NULL;
 
 int main(void) {
-    const char *file = "public.pem";
-    int ret;
+    
     OSSL_PROVIDER *provider_base = NULL;
     OSSL_PROVIDER *provider = NULL;
-    FILE *fp_create = NULL;
-    FILE *fp_resolve = NULL;
-    FILE *fp_update = NULL;
-    FILE *fp_revoke = NULL;
     FILE *fp_did = NULL;
-    DID_CTX *didctx = NULL;
-    OSSL_LIB_CTX *libctx = NULL;
+    long f_size;
+    char *authentication_pem = NULL;
+    char *assertion_pem = NULL;
+    char c;
+    FILE *authn_meth_fp;
+    FILE *assrtn_meth_fp;
 
-    DID_DOCUMENT *did_doc = NULL, *did_doc_rcv = NULL, *did_doc_update = NULL;
+    EVP_DID_CTX *ctx_did = NULL;
+	EVP_DID *evp_did = NULL;
 
-    if ((fp_create = fopen("create_mainnet.txt", "a")) == NULL) {
-        goto error;
-    }
-    if ((fp_resolve = fopen("resolve_mainnet.txt", "a")) == NULL) {
-        goto error;
-    }
-    if ((fp_update = fopen("update_mainnet.txt", "a")) == NULL) {
-        goto error;
-    }
-    if ((fp_revoke = fopen("revoke_mainnet.txt", "a")) == NULL) {
-        goto error;
-    }
+    OSSL_PARAM params[3];
+	size_t params_n = 0, n = 0; 
+
+    authn_meth_fp = fopen("authentication.pem", "r");
+	if (authn_meth_fp == NULL)
+		return 0;
+
+    fseek(authn_meth_fp, 0, SEEK_END);
+	f_size = ftell(authn_meth_fp);
+	fseek(authn_meth_fp, 0, SEEK_SET);
+	authentication_pem = malloc(f_size);
+
+	while ((c = fgetc(authn_meth_fp)) != EOF) {
+		authentication_pem[n++] = c;
+	}
+
+    assrtn_meth_fp = fopen("assertion.pem", "r");
+	if (assrtn_meth_fp == NULL)
+		return 0;
+
+    fseek(assrtn_meth_fp, 0, SEEK_END);
+	f_size = ftell(assrtn_meth_fp);
+	fseek(assrtn_meth_fp, 0, SEEK_SET);
+	assertion_pem = malloc(f_size);
+
+    n = 0;
+	while ((c = fgetc(assrtn_meth_fp)) != EOF) {
+		assertion_pem[n++] = c;
+	}
 
     // load the did provider for did operations
     provider = OSSL_PROVIDER_load(NULL, "ssi");
     if (provider == NULL) {
-        printf("DID provider load failed\n");
-        goto error;
-    }
-
-    libctx = OSSL_LIB_CTX_new();
-    if (libctx == NULL) {
-        printf("OSSL_LIB_CTX new failed\n");
-        goto error;
+        BIO_printf(bio_err, "Error loading provider\n");
+        goto err;
     }
 
     // load the default provider for key operations
-    provider_base = OSSL_PROVIDER_load(libctx, "default");
+    provider_base = OSSL_PROVIDER_load(NULL, "default");
     if (provider_base == NULL) {
-        printf("default provider load failed\n");
-        goto error;
+        BIO_printf(bio_err, "Error loading provider\n");
+        goto err;
     }
 
-    // Creation of new did context
-    didctx = DID_CTX_new(provider);
-    if (didctx == NULL) {
-        printf("DID CTX new failed\n");
-        goto error;
+    evp_did = EVP_DID_fetch(NULL, "OTT", NULL);
+	if (evp_did == NULL) {
+		BIO_printf(bio_err, "Error fetching DID\n");
+        goto err;
+	}
+
+    ctx_did = EVP_DID_CTX_new(evp_did);
+	if (ctx_did == NULL){
+		BIO_printf(bio_err, "Error creating DID CTX\n");
+        goto err;
+	}
+
+    params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_DID_PARAM_AUTHN_METH_PKEY, authentication_pem, 0);
+	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_DID_PARAM_ASSRTN_METH_PKEY, assertion_pem, 0);
+	params[params_n] = OSSL_PARAM_construct_end();
+
+    char *did = EVP_DID_create(ctx_did, params);
+    if(did == NULL) {
+        BIO_printf(bio_err, "Error creating a DID DOCUMENT\n");
+        goto err;
     }
 
-    // Creation of new did document
-    did_doc = DID_DOCUMENT_new();
-    if (did_doc == NULL) {
-        printf("DID document new failed\n");
-        goto error;
-    }
-
-    //Creation of empty did document
-    did_doc_rcv = DID_DOCUMENT_new();
-    if (did_doc_rcv == NULL) {
-        printf("DID document new failed\n");
-        goto error;
-    }
-
-    ret = DID_fetch(NULL, didctx, "OTT", "property");
-    if (ret == 0) {
-        printf("DID fetch failed\n");
-        goto error;
-    }
-
-    ret = load_key(did_doc, file, file, libctx);
-    if (ret == 0) {
-        printf("Load key failed\n");
-        goto error;
-    }
+    printf("DID %s\n", did);
 
     if ((fp_did = fopen("did.txt", "w")) == NULL) {
-        goto error;
+        goto err;
     }
 
-    char *new_did = DID_create(didctx, did_doc);
+    fprintf(fp_did, "%s\n", did);
 
-    if (new_did == NULL) {
-        printf("DID_create failed\n");
-        goto error;
-    }
+	if(!EVP_DID_resolve(ctx_did, did, NULL)){
+		BIO_printf(bio_err, "Error loading provider\n");
+        goto err;
+	}
 
-    printf("DID %s\n", new_did);
-    fprintf(fp_did, "%s\n", new_did);
-
-    ret = DID_resolve(didctx, new_did, did_doc_rcv);
-
-    switch (ret) {
-        case DID_INTERNAL_ERROR:
-            printf("DID method internal error\n");
-            return -1;
-            break;
-        case DID_NOT_FOUD:
-            printf("DID document not found\n");
-            return 0;
-            break;
-        case DID_REVOKED:
-            printf("DID %s REVOKED\n", new_did);
-            return 0;
-            break;
-        case DID_OK:
-            printf("DID %s FOUND\n", new_did);
-            break;
-        default:
-            break;
-    }
-
-    error:
-    fclose(fp_create);
-    fclose(fp_resolve);
-    fclose(fp_update);
-    fclose(fp_revoke);
+err:
     fclose(fp_did);
-    DID_DOCUMENT_free(did_doc);
-    DID_DOCUMENT_free(did_doc_rcv);
-    DID_DOCUMENT_free(did_doc_update);
-
-    OPENSSL_free(new_did);
-    // OPENSSL_free(auth);
-    // OPENSSL_free(ass);
+    EVP_DID_free(evp_did);
+	EVP_DID_CTX_free(ctx_did);
     OSSL_PROVIDER_unload(provider);
     OSSL_PROVIDER_unload(provider_base);
-    DID_CTX_free(didctx);
-    OSSL_LIB_CTX_free(libctx);
 
     return 0;
 }
