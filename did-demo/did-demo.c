@@ -27,9 +27,11 @@ int main(void) {
     OSSL_PARAM params[3];
 	size_t params_n = 0, n = 0; 
 
-    authn_meth_fp = fopen("authentication.pem", "r");
-	if (authn_meth_fp == NULL)
-		return 0;
+    authn_meth_fp = fopen("did-public.pem", "r");
+	if (authn_meth_fp == NULL){
+		printf("Error opening did-public.pem file\n");
+        return -1;
+    }
 
     fseek(authn_meth_fp, 0, SEEK_END);
 	f_size = ftell(authn_meth_fp);
@@ -40,9 +42,13 @@ int main(void) {
 		authentication_pem[n++] = c;
 	}
 
-    assrtn_meth_fp = fopen("assertion.pem", "r");
-	if (assrtn_meth_fp == NULL)
-		return 0;
+    fclose(authn_meth_fp); 
+
+    assrtn_meth_fp = fopen("did-public.pem", "r");
+	if (assrtn_meth_fp == NULL){
+        printf("Error opening did-public.pem file\n");
+		return -1;
+    }
 
     fseek(assrtn_meth_fp, 0, SEEK_END);
 	f_size = ftell(assrtn_meth_fp);
@@ -53,6 +59,8 @@ int main(void) {
 	while ((c = fgetc(assrtn_meth_fp)) != EOF) {
 		assertion_pem[n++] = c;
 	}
+
+    fclose(authn_meth_fp); 
 
     // load the did provider for did operations
     provider = OSSL_PROVIDER_load(NULL, "ssi");

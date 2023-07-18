@@ -3,7 +3,7 @@
 #include <openssl/core_names.h>
 #include <openssl/err.h>
 #include <openssl/params.h>
-#include "did_method.h"
+#include "did_internal.h"
 
 static OSSL_FUNC_did_newctx_fn did_newctx;
 static OSSL_FUNC_did_create_fn did_create;

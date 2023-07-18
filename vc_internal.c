@@ -30,6 +30,7 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, c
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
     unsigned char *sig = NULL;
+    int ret;
 
     /* compute signature following OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
@@ -46,18 +47,23 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, c
     if (EVP_DigestSign(mctx, NULL, &siglen, (const unsigned char*)tbs, strlen(tbs)) <= 0)
         return 0;
 
+    //printf("siglen before: %d\n", siglen);
     sig = OPENSSL_malloc(siglen);
     if (sig == NULL || EVP_DigestSign(mctx, sig, &siglen, (const unsigned char*)tbs, strlen(tbs)) <= 0)
         return 0;
+    //printf("siglen after: %d\n", siglen);
 
     /* ENCODE signature BASE 64  with OpenSSL EVP_EncodeBlock() utility */
-    size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1; 
+    size_t b64_sig_size = (((siglen + 2) / 3) * 4) + 1;
+    /*size_t b64_sig_size = 96;*/
     *b64_sig = (char *)OPENSSL_malloc(b64_sig_size);
     if (*b64_sig == NULL)
         goto fail;
     if(!EVP_EncodeBlock(*b64_sig, sig, siglen))
         goto fail;
-
+    /*ret=EVP_EncodeBlock(*b64_sig, sig, siglen);
+    printf("encoded blocks: %d\n", ret);
+    printf("b64_sig length: %d\n", strlen(*b64_sig));*/
     OPENSSL_free(sig);
     return 1;
 
@@ -80,7 +86,19 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
 		sig_size = 256;
 		break;
 	case EcdsaSecp256r1VerificationKey2023:
-		sig_size = 72;
+		size_t b64_len = strlen(b64_sig);
+		printf("b64_len %d\n", b64_len);
+		printf("%s\n", b64_sig);
+		if(b64_sig[b64_len-2] == '='){
+			printf("char: %c", b64_sig[b64_len-2]);
+			sig_size = 70;
+		}
+		else if(b64_sig[b64_len-1] == '='){
+			printf("char: %c", b64_sig[b64_len-1]);
+			sig_size = 71;
+		}
+		else
+			sig_size = 72;
 		break;
 	case Ed25519VerificationKey2023:
 		sig_size = 64;
@@ -93,6 +111,9 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
     sig = (unsigned char *)OPENSSL_malloc(sig_size);
     if (sig == NULL)
         return 0;
+    int ret;
+    /*ret = EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig));
+    printf("# decoded blocks: %d", ret);*/
     if (!EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig)))
         goto fail;
 
@@ -108,8 +129,8 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
                 goto fail;
     }
 
-    if (EVP_DigestVerify(mctx, sig, sig_size, (const unsigned char *)tbs, strlen(tbs)) <= 0)
-        goto fail;
+	if (EVP_DigestVerify(mctx, sig, sig_size, (const unsigned char *)tbs, strlen(tbs)) <= 0)
+		goto fail;
 
     OPENSSL_free(sig);
     return 1;

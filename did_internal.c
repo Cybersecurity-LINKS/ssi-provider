@@ -1,8 +1,20 @@
-#include "did_method.h"
+#include "did_internal.h"
 #include <time.h>
 #include <sys/time.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+
+#define MAINNET {.hostname = "192.168.94.191\0",\
+                .port = 14265,\
+                .tls = false}
+
+#define MAINNET_PUBLIC {.hostname = "chrysalis-nodes.iota.org\0",\
+                .port = 443,\
+                .tls = true}
+
+#define TESTNET {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",\
+                .port = 80,\
+                .tls = false}
 
 static int get_key_type(EVP_PKEY *key)
 {
@@ -221,15 +233,8 @@ int did_ott_create(DID_CTX *ctx)
     char index_key[KEY_INDEX_LEN];
 
     fprintf(stdout, "CREATE\n");
-    /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
-                                 .port = MAINNET00_PORT,
-                                 .tls = true}; */
-    /*     IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
-                .port = 14265,
-                .tls = false}; */
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-                                 .port = 80,
-                                 .tls = false};
+    
+    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
 
     ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
     if (ret != OTT_OK)
@@ -318,15 +323,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
 
     memset(revoke, 0, INDEX_SIZE);
 
-    /* IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
-                                 .port = MAINNET00_PORT,
-                                 .tls = true}; */
-    /*     IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
-                .port = 14265,
-                .tls = false}; */
-    IOTA_Endpoint testnet0tls = {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",
-                                 .port = 80,
-                                 .tls = false};
+    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
 
     fprintf(stdout, "RESOLVE\n");
 
@@ -532,12 +529,8 @@ int did_ott_update(DID_CTX *ctx)
     char index_key[KEY_INDEX_LEN];
     
     fprintf(stdout, "UPDATE\n");
-    /*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
-                .port = MAINNET00_PORT,
-                .tls = true}; */
-    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
-                                 .port = 14265,
-                                 .tls = false};
+    
+    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
 
     load_channel(&ch_rev, &testnet0tls);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
@@ -639,13 +632,7 @@ int did_ott_revoke(DID_CTX *ctx)
     memset(revoke_index, 0, INDEX_SIZE);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
 
-    /*     IOTA_Endpoint testnet0tls = {.hostname = MAINNET00_HOSTNAME,
-                .port = MAINNET00_PORT,
-                .tls = true}; */
-
-    IOTA_Endpoint testnet0tls = {.hostname = "192.168.94.191\0",
-                                 .port = 14265,
-                                 .tls = false};
+    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
 
     load_channel(&ch_send, &testnet0tls);
 
