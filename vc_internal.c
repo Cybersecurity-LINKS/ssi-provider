@@ -87,14 +87,14 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
 		break;
 	case EcdsaSecp256r1VerificationKey2023:
 		size_t b64_len = strlen(b64_sig);
-		printf("b64_len %d\n", b64_len);
-		printf("%s\n", b64_sig);
+		/*printf("b64_len %d\n", b64_len);
+		printf("%s\n", b64_sig);*/
 		if(b64_sig[b64_len-2] == '='){
-			printf("char: %c", b64_sig[b64_len-2]);
+			/*printf("char: %c", b64_sig[b64_len-2]);*/
 			sig_size = 70;
 		}
 		else if(b64_sig[b64_len-1] == '='){
-			printf("char: %c", b64_sig[b64_len-1]);
+			/*printf("char: %c", b64_sig[b64_len-1]);*/
 			sig_size = 71;
 		}
 		else
