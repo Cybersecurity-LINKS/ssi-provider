@@ -1,12 +1,14 @@
-# didprovider
+# ssi-provider
 
 # Build and Installation guide
 
 ## Requirements
 
-### SSI-OpenSSL
+### ssi-openssl
 
-Download and install locally the SSI-version of OpenSSL.
+Download and install locally the SSI-version of OpenSSL
+
+    git clone git@github.com:Cybersecurity-LINKS/ssi-openssl.git
 
 ### iota.c
 
@@ -25,10 +27,10 @@ At line 19 replace `--disable-shared` with `cxxflags=-fPIC`
 
 ## Build & Install
 
-    cd path/to/didprovider
+    cd path/to/ssiprovider
     nano Makefile
 
-Edit the first two lines specifying the right paths `OPENSSL_DIR=/path/to/openssl` and `IOTA_DIR=/path/to/iota.c`
+Edit the first two lines specifying the right paths `OPENSSL_DIR=/path/to/openssl` , `IOTA_DIR=/path/to/iota.c` and `OPENSSL_DIR=/path/to/lib`
 
     make
     make install

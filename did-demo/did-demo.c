@@ -62,7 +62,7 @@ int main(void) {
 
     fclose(authn_meth_fp); 
 
-    // load the did provider for did operations
+    // load the did provider for SSI operations
     provider = OSSL_PROVIDER_load(NULL, "ssi");
     if (provider == NULL) {
         BIO_printf(bio_err, "Error loading provider\n");

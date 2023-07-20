@@ -1,5 +1,6 @@
 OPENSSL_DIR=/home/pirug/openssl
 IOTA_DIR=/home/pirug/Desktop/iota.c
+OPENSSL_LIB=lib64
 
 CC      = gcc
 CFLAGS  +=\
@@ -30,10 +31,10 @@ clean:
 
 install:
 	
-	cp libssiprovider.so $(OPENSSL_DIR)/lib64/ossl-modules/ssi.so
+	cp libssiprovider.so $(OPENSSL_DIR)/$(OPENSSL_LIB)/ossl-modules/ssi.so
 
 uninstall:
-	rm -f $(OPENSSL_DIR)/lib64/ossl-modules/ssi.so
+	rm -f $(OPENSSL_DIR)/$(OPENSSL_LIB)/ossl-modules/ssi.so
 
 tests:
 	chmod -R 777 ./test

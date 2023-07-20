@@ -85,8 +85,8 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
     case RsaVerificationKey2023:
 		sig_size = 256;
 		break;
-	case EcdsaSecp256r1VerificationKey2023:
-		size_t b64_len = strlen(b64_sig);
+	case EcdsaSecp256r1VerificationKey2023: ;
+        size_t b64_len = strlen(b64_sig);
 		/*printf("b64_len %d\n", b64_len);
 		printf("%s\n", b64_sig);*/
 		if(b64_sig[b64_len-2] == '='){
@@ -414,8 +414,8 @@ fail:
 int vc_validate(VC_CTX *ctx)
 {
     time_t now = time(0);
-    char curr_time[50];
-    strftime(curr_time, 50, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+    char curr_time[100];
+    strftime(curr_time, 90, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     /* the issuance date MUSTs be less then current time */
     if (ctx->issuanceDate == NULL || strcmp(ctx->issuanceDate, curr_time) > 0)
