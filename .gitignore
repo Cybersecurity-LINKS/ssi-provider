@@ -75,7 +75,7 @@ channel.txt
 #demo directories
 **/*.txt
 **/*.pem
-**/*demo
+# **/*demo
 **/.settings
 **/.project
 **/.cproject
