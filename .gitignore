@@ -73,9 +73,9 @@ channel.txt
 # vc-demo/*.pem
 
 #demo directories
-*/*.txt
-*/*.pem
-*/*demo
-*/.settings
-*/.project
-*/.cproject
+**/*.txt
+**/*.pem
+**/*demo
+**/.settings
+**/.project
+**/.cproject
