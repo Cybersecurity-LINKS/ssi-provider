@@ -6,6 +6,7 @@
 #include "openssl/core_names.h"
 #include "openssl/evp_ssi.h"
 #include <openssl/bio.h>
+#include <sys/time.h>
 
 int main(int argc, char *argv[]){
 
@@ -17,6 +18,9 @@ int main(int argc, char *argv[]){
     EVP_DID_CTX *ctx_did = NULL;
 	EVP_DID *evp_did = NULL;
 
+    struct timeval tv1, tv2;
+
+    gettimeofday(&tv1, NULL);
     if(argc != 2){
         BIO_printf(bio_err, "Wrong number of parameters\n");
         return 0;
@@ -36,6 +40,8 @@ int main(int argc, char *argv[]){
         goto err;
     }
 
+
+
     evp_did = EVP_DID_fetch(NULL, "OTT", NULL);
 	if (evp_did == NULL) {
 		BIO_printf(bio_err, "Error fetching DID\n");
@@ -52,6 +58,11 @@ int main(int argc, char *argv[]){
 		BIO_printf(bio_err, "Error resolving DID\n");
         goto err;
 	}
+
+    gettimeofday(&tv2, NULL);
+    printf("Total time = %f seconds\n\n",
+           (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 +
+            (double)(tv2.tv_sec - tv1.tv_sec));
 
 err:
     EVP_DID_free(evp_did);

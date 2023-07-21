@@ -414,8 +414,8 @@ fail:
 int vc_validate(VC_CTX *ctx)
 {
     time_t now = time(0);
-    char curr_time[100];
-    strftime(curr_time, 90, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+    char curr_time[50];
+    strftime(curr_time, 50, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     /* the issuance date MUSTs be less then current time */
     if (ctx->issuanceDate == NULL || strcmp(ctx->issuanceDate, curr_time) > 0)
