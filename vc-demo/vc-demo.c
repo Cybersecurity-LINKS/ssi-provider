@@ -50,13 +50,13 @@ int main(int argc, char *argv[])
 
     if(argc != 2)
     {
-        printf("Wrong number of parameters\n");
+        fprintf(stderr, "Wrong number of parameters\n");
         return -1;
     }
 
     if ((fp_pkey = fopen(file, "r")) == NULL)
     {
-        printf("Error opening a file\n");
+        fprintf(stderr, "Error opening a file\n");
         goto err;
     }
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	provider = OSSL_PROVIDER_load(NULL, "ssi");
 	if (provider == NULL) {
 		ERR_print_errors_fp(stderr);
-		printf("SSI provider load failed\n");
+		fprintf(stderr, "SSI provider load failed\n");
 		goto err;
 	}
 
@@ -72,32 +72,36 @@ int main(int argc, char *argv[])
     provider_base = OSSL_PROVIDER_load(NULL, "default");
     if (provider_base == NULL)
     {
-        printf("default provider load failed\n");
+        fprintf(stderr, "default provider load failed\n");
         goto err;
     }
 
     if (!PEM_read_PrivateKey(fp_pkey, &pkey, NULL, NULL))
     {
-        printf("Could not translate PEM into EVP_PKEY\n");
+        fprintf(stderr, "Could not translate PEM into EVP_PKEY\n");
         goto err;
     }
     fclose(fp_pkey);
 
     if (get_key_type(pkey) == -1)
     {
-        printf("Invalid key type\n");
+        fprintf(stderr, "Invalid key type\n");
         goto err;
     }
 
     evp_vc = EVP_VC_fetch(NULL, "VC", "provider=ssi");
     if (evp_vc == NULL) {
     	ERR_print_errors_fp(stderr);
+        fprintf(stderr, "Error fetching VC\n");
     	goto err;
     }
 
     vc_ctx = EVP_VC_CTX_new(evp_vc);
-    if (vc_ctx == NULL)
-    	goto err;
+    if (vc_ctx == NULL) {
+        ERR_print_errors_fp(stderr);
+    	fprintf(stderr, "Error creating VC CTX\n");
+        goto err;
+    }
 
     /* riempi i params */
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_ID, "http://example.com/credentials/1", 0);
@@ -107,12 +111,14 @@ int main(int argc, char *argv[])
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_VERIFICATION_METHOD, "http://example.com/issuer/1#key-2", 0);
 	params[params_n] = OSSL_PARAM_construct_end();
 
-    if((vc = EVP_VC_create(vc_ctx, pkey, params)) == NULL)
+    if((vc = EVP_VC_create(vc_ctx, pkey, params)) == NULL){
+        fprintf(stderr, "Error creating a VC\n");
         goto err;
+    }
 
     if ((fp_vc = fopen("vc.txt", "w")) == NULL)
     {
-        printf("Error opening a file\n");
+        fprintf(stderr, "Error opening a file\n");
         goto err;
     }
 

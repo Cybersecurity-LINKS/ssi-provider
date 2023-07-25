@@ -36,4 +36,6 @@ Edit the first two lines specifying the right paths `OPENSSL_DIR=/path/to/openss
     make install
 
 
+## Usage
 
+The address of the node can be changed in the file 'did-internal.c'.

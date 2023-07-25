@@ -29,7 +29,7 @@ int main(void) {
 
     authn_meth_fp = fopen("did-public.pem", "r");
 	if (authn_meth_fp == NULL){
-		printf("Error opening did-public.pem file\n");
+		fprintf(stderr, "Error opening did-public.pem file\n");
         return -1;
     }
 
@@ -46,7 +46,7 @@ int main(void) {
 
     assrtn_meth_fp = fopen("did-public.pem", "r");
 	if (assrtn_meth_fp == NULL){
-        printf("Error opening did-public.pem file\n");
+        fprintf(stderr, "Error opening did-public.pem file\n");
 		return -1;
     }
 
@@ -65,26 +65,26 @@ int main(void) {
     // load the did provider for SSI operations
     provider = OSSL_PROVIDER_load(NULL, "ssi");
     if (provider == NULL) {
-        BIO_printf(bio_err, "Error loading provider\n");
+        fprintf(stderr, "Error loading provider\n");
         goto err;
     }
 
     // load the default provider for key operations
     provider_base = OSSL_PROVIDER_load(NULL, "default");
     if (provider_base == NULL) {
-        BIO_printf(bio_err, "Error loading provider\n");
+        fprintf(stderr, "Error loading provider\n");
         goto err;
     }
 
     evp_did = EVP_DID_fetch(NULL, "OTT", NULL);
 	if (evp_did == NULL) {
-		BIO_printf(bio_err, "Error fetching DID\n");
+		fprintf(stderr, "Error fetching DID\n");
         goto err;
 	}
 
     ctx_did = EVP_DID_CTX_new(evp_did);
 	if (ctx_did == NULL){
-		BIO_printf(bio_err, "Error creating DID CTX\n");
+		fprintf(stderr, "Error creating DID CTX\n");
         goto err;
 	}
 
@@ -94,7 +94,7 @@ int main(void) {
 
     char *did = EVP_DID_create(ctx_did, params);
     if(did == NULL) {
-        BIO_printf(bio_err, "Error creating a DID DOCUMENT\n");
+        fprintf(stderr, "Error creating a DID DOCUMENT\n");
         goto err;
     }
 
@@ -107,7 +107,7 @@ int main(void) {
     fprintf(fp_did, "%s\n", did);
 
 	if(!EVP_DID_resolve(ctx_did, did, NULL)){
-		BIO_printf(bio_err, "Error loading provider\n");
+		fprintf(stderr, "Error loading provider\n");
         goto err;
 	}
 

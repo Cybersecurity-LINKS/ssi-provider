@@ -417,7 +417,7 @@ int vc_validate(VC_CTX *ctx)
     char curr_time[50];
     strftime(curr_time, 50, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
-    /* the issuance date MUSTs be less then current time */
+    /* the issuance date MUST be less then current time */
     if (ctx->issuanceDate == NULL || strcmp(ctx->issuanceDate, curr_time) > 0)
         return 0;
 
