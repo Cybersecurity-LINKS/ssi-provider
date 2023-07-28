@@ -323,7 +323,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
 
     memset(revoke, 0, INDEX_SIZE);
 
-    IOTA_Endpoint testnet0tls = MAINNET;
+    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
 
     fprintf(stdout, "RESOLVE\n");
 

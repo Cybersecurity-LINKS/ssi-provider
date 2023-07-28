@@ -37,8 +37,6 @@ int main(int argc, char *argv[]){
         goto err;
     }
 
-    gettimeofday(&tv1, NULL);
-
     evp_did = EVP_DID_fetch(NULL, "OTT", NULL);
 	if (evp_did == NULL) {
 		fprintf(stderr, "Error fetching DID\n");
@@ -50,6 +48,8 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "Error creating DID CTX\n");
         goto err;
 	}
+	
+    gettimeofday(&tv1, NULL);
 
     if(!EVP_DID_resolve(ctx_did, argv[1], NULL)){
 		fprintf(stderr, "Error resolving DID\n");
