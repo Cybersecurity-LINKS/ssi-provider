@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_ISSUER, "http://example.com/issuer/1", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_EXPIRATION_DATE, "2025-01-01T12:00:00Z", 0);
 	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_SUBJECT, argv[1], 0);
-	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_VERIFICATION_METHOD, "http://example.com/issuer/1#key-2", 0);
+	params[params_n++] = OSSL_PARAM_construct_utf8_string(OSSL_VC_PARAM_VERIFICATION_METHOD, "did:ott:7E70CADF4D4E4F2958C125B48D49BB977CC7E34F8947908AEA196260283A2862#key-1", 0);
 	params[params_n] = OSSL_PARAM_construct_end();
 
     if((vc = EVP_VC_create(vc_ctx, pkey, params)) == NULL){

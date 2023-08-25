@@ -54,10 +54,10 @@ static const OSSL_ALGORITHM *ssi_query(void *provCtx, int id, int *no_cache)
     switch (id)
     {
     case OSSL_OP_DID:
-        printf("DID QUERY\n");
+        /* printf("DID QUERY\n"); */
         return ssi_did;
     case OSSL_OP_VC:
-        printf("VC QUERY\n");
+        /* printf("VC QUERY\n"); */
         return ssi_vc;
         break;
     }
@@ -78,7 +78,7 @@ static const OSSL_DISPATCH ssi_dispatch_table[] = {
 
 OPENSSL_EXPORT int OSSL_provider_init(const OSSL_CORE_HANDLE *handle, const OSSL_DISPATCH *in, const OSSL_DISPATCH **out, void **provctx)
 {
-    printf("SSI INIT\n");
+    /* printf("SSI INIT\n"); */
     *out = ssi_dispatch_table;
     return 1;
 }

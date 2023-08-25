@@ -108,7 +108,7 @@ void did_freectx(void *didctx)
 
 char *did_create(void *didctx, OSSL_PARAM params[]){
 
-    printf("DID OTT CREATE\n");
+    /* printf("DID OTT CREATE\n"); */
     
     const OSSL_PARAM *p;
     DID_CTX *ctx = (DID_CTX *)didctx;
@@ -156,7 +156,7 @@ int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     DID_CTX *ctx = (DID_CTX *)didctx;
 
     int ret;
-    printf("DID OTT RESOLVE\n");
+    /* printf("DID OTT RESOLVE\n"); */
     
     if (did == NULL) {
         return 0;
@@ -180,12 +180,13 @@ int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     if(!did_get_ctx_params((void *)ctx, params))
         return 0;
 
+    printf("RESOLVE SUCCESSFUL\n");
     return 1;
 }
 
 char* did_update(void *didctx, OSSL_PARAM params[]) {
 
-    printf("DID OTT UPDATE\n");
+    /* printf("DID OTT UPDATE\n"); */
 
     const OSSL_PARAM *p;
     DID_CTX *ctx = (DID_CTX *)didctx;
@@ -232,7 +233,7 @@ int did_revoke(void *didctx){
     
     DID_CTX *ctx = (DID_CTX *)didctx;
     
-    printf("DID OTT REVOKE\n");
+    /* printf("DID OTT REVOKE\n"); */
     printf("%s\n",ctx->id);
 
     if(!did_ott_revoke(ctx))

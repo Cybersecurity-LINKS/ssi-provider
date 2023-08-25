@@ -337,11 +337,11 @@ int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
     if (!vc_cjson_parse(ctx, vc_stream))
         return 0;
 
-    if (ctx->atContext == NULL || ctx->id == NULL || ctx->type == NULL || ctx->issuer == NULL || ctx->issuanceDate == NULL 
+    /* if (ctx->atContext == NULL || ctx->id == NULL || ctx->type == NULL || ctx->issuer == NULL || ctx->issuanceDate == NULL 
         || ctx->expirationDate == NULL || ctx->credentialSubject.id == NULL ||
         ctx->proof.type == NULL || ctx->proof.created == NULL || ctx->proof.purpose == NULL ||
         ctx->proof.verificationMethod == NULL || ctx->proof.value == NULL)
-        return 0;
+        return 0; */
 
     /* return the fields of the VC through params[] */
     if (!vc_get_ctx_params((void *)ctx, params))
