@@ -1,5 +1,5 @@
-OPENSSL_DIR=/home/pirug/openssl
-IOTA_DIR=/home/pirug/Desktop/iota.c
+OPENSSL_DIR=/home/ale/Scrivania/openssl
+IOTA_DIR=/home/ale/Scrivania/iota.c
 OPENSSL_LIB=lib64
 
 CC      = gcc

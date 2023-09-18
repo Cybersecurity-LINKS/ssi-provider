@@ -13,8 +13,8 @@
 /* --------------------------------------------------------------------- */
 
 uint8_t OTT_write_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint* endpoint);
-uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint* endpoint);
-uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, bool finalize);
+uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, char * msg_id, IOTA_Endpoint* endpoint);
+uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, char * msg_id, bool finalize);
 uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize);
 uint8_t set_channel_index_read(OTT_channel* channel, uint8_t* start_index_bin);
 uint8_t copy_iota_index(IOTA_Index* dstIndex, IOTA_Index* srcIndex);

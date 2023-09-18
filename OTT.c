@@ -26,7 +26,7 @@ uint8_t reset_index(IOTA_Index* index);
 uint8_t copy_iota_index(IOTA_Index* dstIndex, IOTA_Index* srcIndex);
 bool is_null_index(uint8_t* idx);
 uint8_t generate_iota_index(OTT_channel* channel);
-uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_size);
+uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_size, char * msg_id);
 uint8_t convert_ott_endpoint(IOTA_Endpoint* ott_ep, iota_client_conf_t *ep);
 uint8_t find_ott_msg(find_msg_t* msg_id_list, OTT_channel* channel, uint8_t* msg, uint16_t* msg_len);
 uint8_t is_ott_valid_msg(uint8_t* msg, uint16_t* msg_len, OTT_channel* channel);
@@ -61,7 +61,7 @@ uint8_t OTT_write_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint*
 	return(OTT_OK);
 }
 
-uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, IOTA_Endpoint* endpoint) {
+uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, char * msg_id, IOTA_Endpoint* endpoint) {
 	if((channel == NULL) || (endpoint == NULL)) return OTT_ERR_NULL; 
 	if(id < 0) return OTT_ERR_CH_INIT;
 
@@ -100,7 +100,7 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 		return OTT_NOT_FOUND;
 	}	
 
-	//printf("Recieved %d msgs\n", msg_id_list_len);
+	//printf("Received %d msgs\n", msg_id_list_len);
 	channel->number_ott_msg = msg_id_list_len;
 	for(i = 0; i < msg_id_list_len; i++) {
 		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
@@ -374,7 +374,7 @@ uint8_t get_msg_id_list(OTT_channel* channel, res_find_msg_t* response_info, fin
 }
 
 
-uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, bool finalize) {
+uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, char * msg_id, bool finalize) {
 	uint8_t msg_to_send[OTT_CREATE_MSG_SIZE];
 	uint16_t msg_len = 0, i = 0, messages = 0;
 	size_t s = 0, sent_data = 0;
@@ -388,7 +388,7 @@ uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, bo
 
 		if((ret = create_ott_msg(channel, d, s, msg_to_send, &msg_len, finalize)) != OTT_OK) break;  
 
-		if((ret = send_ott_message(channel, msg_to_send, msg_len)) == OTT_OK) {
+		if((ret = send_ott_message(channel, msg_to_send, msg_len, msg_id)) == OTT_OK) {
 			d += s;
 			sent_data += s;
 			channel->sent_bytes += s;
@@ -597,7 +597,7 @@ uint8_t generate_iota_index(OTT_channel* channel) {
 }
 
 
-uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_size) {
+uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_size, char * msg_id) {
 	int32_t ret = OTT_ERR_SEND;
 	res_send_message_t response;
 	iota_client_conf_t iota_node;
@@ -618,6 +618,8 @@ uint8_t send_ott_message(OTT_channel* ch, uint8_t* raw_data, uint16_t raw_data_s
 	ret = send_indexation_msg(&iota_node, (char *) (ch->buff_hex_index), (char *) (ch->buff_hex_data), &response);
 	if(ret == 0) {
 		if (!response.is_error) {
+			//Copy Message ID
+			memcpy(msg_id, response.u.msg_id, (IOTA_MESSAGE_ID_HEX_BYTES + 1));
 			fprintf(stdout, "Sent message - ID: %s\n", response.u.msg_id);
 			fprintf(stdout, "Sent message - index: %s\n", ch->buff_hex_index);
 			//print_raw_hex(ch->buff_hex_data, OTT_MSG_HEX_SIZE);

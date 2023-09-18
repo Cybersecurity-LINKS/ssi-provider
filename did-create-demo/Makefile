@@ -1,5 +1,5 @@
-OPENSSL_DIR=/home/pirug/openssl
-TESTS_DIR=$(HOME)/Desktop/tests/id-gen/
+OPENSSL_DIR=/home/ale/Scrivania/openssl
+TESTS_DIR=$(HOME)/Scrivania/tests/id-gen/
 OPENSSL_LIB=lib64
 
 CC = gcc

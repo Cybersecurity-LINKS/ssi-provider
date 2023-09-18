@@ -231,6 +231,8 @@ int did_ott_create(DID_CTX *ctx)
     //int ret;
     char id_key[MAX_KEY_ID_LEN];
     char index_key[KEY_INDEX_LEN];
+    char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1];
+    char did_msgid[DID_LEN + IOTA_MESSAGE_ID_HEX_BYTES + 2] = "";
 
     fprintf(stdout, "CREATE\n");
     
@@ -293,14 +295,19 @@ int did_ott_create(DID_CTX *ctx)
         goto fail;
     }
 
-    ret = OTT_write(&ch_send, (unsigned char *)did_doc, strlen(did_doc), false);
+    ret = OTT_write(&ch_send, (unsigned char *)did_doc, strlen(did_doc), msg_id, false);
     if (ret != OTT_OK)
     {
         goto fail;
     }
     fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
 
-    save_channel(&ch_send);
+    //save_channel(&ch_send);
+    snprintf(did_msgid, sizeof(did_msgid), "%s:%s", ctx->id, msg_id);
+
+    OPENSSL_free(ctx->id);
+    ctx->id = NULL;
+    ctx->id = OPENSSL_strdup(did_msgid);
 
     BIO_free(authn_pubkey);
     BIO_free(assrtn_pubkey);
@@ -313,25 +320,29 @@ fail:
 
 int did_ott_resolve(DID_CTX *ctx, char *did)
 {
-    char hex_index[INDEX_HEX_SIZE];
+    //char hex_index[INDEX_HEX_SIZE];
+    char *hex_index;
     uint8_t index[INDEX_SIZE];
     OTT_channel ch_read;
     uint8_t read_buff[DATA_SIZE];
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
-    uint8_t revoke[INDEX_SIZE];
+    //uint8_t revoke[INDEX_SIZE];
+    //char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1];
+    char *msg_id;
 
-    memset(revoke, 0, INDEX_SIZE);
+
+    //memset(revoke, 0, INDEX_SIZE);
 
     IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
 
     fprintf(stdout, "RESOLVE\n");
 
-    ret = OTT_read_init_channel(&ch_read, 1, &testnet0tls);
+/*    ret = OTT_read_init_channel(&ch_read, 1, msg_id, &testnet0tls);
     if (ret != 0)
         return DID_RESOLVE_ERROR;
 
-    // extract hex_index and convert to index
+     // extract hex_index and convert to index
     ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); // len must not include the \0
     if (ret != 0)
         return DID_RESOLVE_ERROR;
@@ -340,7 +351,20 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     if (ret != 0)
         return DID_RESOLVE_ERROR;
 
-    set_channel_index_read(&ch_read, index);
+    set_channel_index_read(&ch_read, index); */
+    char * token;
+    token = strtok(did, ":");
+    token = strtok(NULL, ":");
+    token = strtok(NULL, ":");
+    hex_index = token;
+   // token = strtok(NULL, ":");
+    msg_id = strtok(NULL, ":");
+    //sscanf(did, "%*s:%*s:%s:%s", hex_index, msg_id );
+    printf(" aaaaaa %s\n %s\n", hex_index, msg_id);
+    printf("  %s\n ", token);
+    ret = OTT_read_init_channel(&ch_read, 1, msg_id, &testnet0tls);
+    if (ret != 0)
+        return DID_RESOLVE_ERROR;
     ret = OTT_read(&ch_read, read_buff, &expected_size);
 
     if (ret == OTT_REVOKE)
@@ -534,7 +558,7 @@ int did_ott_update(DID_CTX *ctx)
 
     load_channel(&ch_rev, &testnet0tls);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
-    ret = OTT_write(&ch_rev, write_buff, REVOKE_MSG_SIZE, true);
+    ret = OTT_write(&ch_rev, write_buff, REVOKE_MSG_SIZE, NULL, true);
     if (ret != OTT_OK)
     {
         goto fail;
@@ -603,7 +627,7 @@ int did_ott_update(DID_CTX *ctx)
     // fprintf(stdout, "DID Document length = %lu\n", strlen(did_doc));
     // save the new did
 
-    ret = OTT_write(&ch_send, (unsigned char *)did_doc, strlen(did_doc), false);
+    ret = OTT_write(&ch_send, (unsigned char *)did_doc, strlen(did_doc), NULL, false);
     if (ret != OTT_OK)
     {
         goto fail;
@@ -636,7 +660,7 @@ int did_ott_revoke(DID_CTX *ctx)
 
     load_channel(&ch_send, &testnet0tls);
 
-    ret = OTT_write(&ch_send, write_buff, REVOKE_MSG_SIZE, true);
+    ret = OTT_write(&ch_send, write_buff, REVOKE_MSG_SIZE, NULL, true);
     if (ret != OTT_OK)
     {
         goto fail;
