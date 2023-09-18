@@ -320,8 +320,8 @@ fail:
 
 int did_ott_resolve(DID_CTX *ctx, char *did)
 {
-    //char hex_index[INDEX_HEX_SIZE];
-    char *hex_index;
+    char hex_index[INDEX_HEX_SIZE];
+    char *hex_index1;
     uint8_t index[INDEX_SIZE];
     OTT_channel ch_read;
     uint8_t read_buff[DATA_SIZE];
@@ -330,7 +330,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     //uint8_t revoke[INDEX_SIZE];
     //char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1];
     char *msg_id;
-
+    char * token;
 
     //memset(revoke, 0, INDEX_SIZE);
 
@@ -352,19 +352,41 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
         return DID_RESOLVE_ERROR;
 
     set_channel_index_read(&ch_read, index); */
-    char * token;
+    
     token = strtok(did, ":");
+    if(token == NULL)
+        return DID_RESOLVE_ERROR;
     token = strtok(NULL, ":");
+    if(token == NULL)
+        return DID_RESOLVE_ERROR;
     token = strtok(NULL, ":");
-    hex_index = token;
-   // token = strtok(NULL, ":");
+    if(token == NULL)
+        return DID_RESOLVE_ERROR;
+    hex_index1 = token;
+
     msg_id = strtok(NULL, ":");
-    //sscanf(did, "%*s:%*s:%s:%s", hex_index, msg_id );
-    printf(" aaaaaa %s\n %s\n", hex_index, msg_id);
-    printf("  %s\n ", token);
+    if(msg_id == NULL)
+        return DID_RESOLVE_ERROR;
+
     ret = OTT_read_init_channel(&ch_read, 1, msg_id, &testnet0tls);
     if (ret != 0)
         return DID_RESOLVE_ERROR;
+
+    //fprintf(stdout, "%s\n", did);
+
+
+    ret = hex_2_bin(hex_index1, INDEX_HEX_SIZE, index, INDEX_SIZE);
+    if (ret != 0)
+        return DID_RESOLVE_ERROR;
+
+    //fprintf(stdout, "qui3333333\n");
+    set_channel_index_read(&ch_read, index);
+
+
+   // printf("%s\n", did);
+    //printf("%s\n", hex_index);
+   // printf("%s\n", hex_index1);
+
     ret = OTT_read(&ch_read, read_buff, &expected_size);
 
     if (ret == OTT_REVOKE)

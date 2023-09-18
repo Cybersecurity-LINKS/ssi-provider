@@ -71,6 +71,7 @@ uint8_t OTT_read_init_channel(OTT_channel* channel, uint16_t id, char * msg_id, 
 	
 	// Set fields
 	channel->id = id;
+	channel->msg_id = msg_id;
 	channel->node = endpoint;
 	channel->sent_msg = 0;
 	channel->recv_msg = 0;
@@ -95,18 +96,19 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 
 	if((channel == NULL) || (outData == NULL)) return OTT_ERR_NULL;
 
-	response = res_find_msg_new();
+
+/* 	response = res_find_msg_new();
 	if((ret = get_msg_id_list(channel, response, &msg_id_list, &msg_id_list_len)) != OTT_OK) {
 		return OTT_NOT_FOUND;
-	}	
+	}	 */
 
 	//printf("Received %d msgs\n", msg_id_list_len);
-	channel->number_ott_msg = msg_id_list_len;
-	for(i = 0; i < msg_id_list_len; i++) {
-		msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
+	//channel->number_ott_msg = msg_id_list_len;
+	//for(i = 0; i < msg_id_list_len; i++) {
+		//msg_id = (char**) utarray_next(msg_id_list->msg_ids, msg_id);
 		// leggi lista msg_id at channel->read_index  <= response, count, LISTA
 		response_msg = res_message_new();
-		if(get_msg_from_id(channel, *msg_id, response_msg, msg_to_read, &msg_len) == OTT_OK) {
+		if(get_msg_from_id(channel, channel->msg_id, response_msg, msg_to_read, &msg_len) == OTT_OK) {
 			ret = is_ott_valid_msg(msg_to_read, &msg_len, channel);
 /* 			if(ret == OTT_ERR_CRYPTO_SIGN){
 				printf("Invalid sign\n");
@@ -122,7 +124,7 @@ uint8_t OTT_read(OTT_channel* channel, uint8_t* outData, uint16_t *outDataSize) 
 			res_message_free(response_msg);
 			return OTT_NOT_FOUND;
 		}
-	}
+	//}
 	// trova il msg_ott nella lista  <= MSG
 	// se trovato => update: buffer with msg, offset, next index, channel counters
 	// se non trovato => ritorna err (unexpected_end, notfound)

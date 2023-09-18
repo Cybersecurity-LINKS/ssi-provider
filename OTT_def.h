@@ -194,6 +194,8 @@ typedef struct OTT_channel_t {
 	uint16_t sent_bytes;
 	uint16_t recv_bytes;
 
+	char * msg_id;
+
     uint8_t buff_hex_data[IOTA_MAX_MSG_SIZE];
     uint8_t buff_hex_index[INDEX_HEX_SIZE];
 } OTT_channel;
