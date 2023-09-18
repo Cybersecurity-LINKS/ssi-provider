@@ -1,11 +1,12 @@
 OPENSSL_DIR=/home/pirug/openssl
+OPENSSL_LIB=lib64
 
 CC = gcc
 CFLAGS = -Wall -g
 CPPFLAGS = -I $(OPENSSL_DIR)/include/
 LDFLAGS = \
--Wl,-rpath=$(OPENSSL_DIR)/lib64/ \
--L $(OPENSSL_DIR)/lib64/ \
+-Wl,-rpath=$(OPENSSL_DIR)/$(OPENSSL_LIB)/ \
+-L $(OPENSSL_DIR)/$(OPENSSL_LIB)/ \
 
 LDLIBS = -lssl -lcrypto
 

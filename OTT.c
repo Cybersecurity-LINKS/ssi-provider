@@ -403,8 +403,8 @@ uint8_t OTT_write(OTT_channel* channel, uint8_t* inData, uint16_t inDataSize, bo
 
 
 uint8_t create_ott_msg(OTT_channel* channel, uint8_t* data, size_t data_len, uint8_t* msg, uint16_t* msg_len, bool finalize) {
-	uint8_t create_tmp_data[OTT_CREATE_MSG_HEADER_SIZE];
-	uint8_t revoke_tmp_data[OTT_RVK_MSG_HEADER_SIZE];
+	uint8_t create_tmp_data[OTT_CREATE_MSG_PLAIN_SIZE];
+	uint8_t revoke_tmp_data[OTT_RVK_MSG_PLAIN_SIZE];
 	uint8_t create_plaintext[OTT_CREATE_MSG_PLAIN_SIZE];
 	uint8_t revoke_plaintext[OTT_RVK_MSG_PLAIN_SIZE];
 	uint8_t signature[SIGN_SIZE];

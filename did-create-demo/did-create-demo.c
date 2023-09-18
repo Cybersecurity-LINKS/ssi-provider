@@ -7,8 +7,6 @@
 #include "openssl/evp_ssi.h"
 #include <openssl/bio.h>
 
-BIO *bio_err = NULL;
-
 int main(void) {
     
     OSSL_PROVIDER *provider_base = NULL;
