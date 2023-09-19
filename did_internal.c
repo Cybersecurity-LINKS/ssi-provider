@@ -6,7 +6,7 @@
 
 #define MAINNET {.hostname = "192.168.94.191\0",\
                 .port = 14265,\
-                .tls = false}
+                .tls = true}
 
 #define MAINNET_PUBLIC {.hostname = "chrysalis-nodes.iota.org\0",\
                 .port = 443,\
