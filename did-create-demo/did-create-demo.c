@@ -15,7 +15,6 @@ int main(void) {
     long f_size;
     char *authentication_pem = NULL;
     char *assertion_pem = NULL;
-    char c;
     FILE *authn_meth_fp;
     FILE *assrtn_meth_fp;
 
@@ -36,9 +35,11 @@ int main(void) {
 	fseek(authn_meth_fp, 0, SEEK_SET);
 	authentication_pem = malloc(f_size);
 
-	while ((c = fgetc(authn_meth_fp)) != EOF) {
-		authentication_pem[n++] = c;
-	}
+    for (n = 0; n < f_size; n++) {
+	authentication_pem[n] = fgetc(authn_meth_fp);
+    }
+    
+    authentication_pem[f_size] = '\0';
 
     fclose(authn_meth_fp); 
 
@@ -53,10 +54,10 @@ int main(void) {
 	fseek(assrtn_meth_fp, 0, SEEK_SET);
 	assertion_pem = malloc(f_size);
 
-    n = 0;
-	while ((c = fgetc(assrtn_meth_fp)) != EOF) {
-		assertion_pem[n++] = c;
+    for (n = 0; n < f_size; n++) {
+		assertion_pem[n] = fgetc(assrtn_meth_fp);
 	}
+    assertion_pem[f_size] = '\0';
 
     fclose(authn_meth_fp); 
 
