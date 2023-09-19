@@ -236,7 +236,7 @@ int did_ott_create(DID_CTX *ctx)
 
     fprintf(stdout, "CREATE\n");
     
-    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
+    IOTA_Endpoint testnet0tls = MAINNET;
 
     ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
     if (ret != OTT_OK)
@@ -334,7 +334,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
 
     //memset(revoke, 0, INDEX_SIZE);
 
-    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
+    IOTA_Endpoint testnet0tls = MAINNET;
 
     fprintf(stdout, "RESOLVE\n");
 

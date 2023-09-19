@@ -1,6 +1,6 @@
-OPENSSL_DIR=/home/pirug/openssl
+OPENSSL_DIR=/home/pi/openssl
 TESTS_DIR=$(HOME)/Desktop/tests/id-gen/
-OPENSSL_LIB=lib64
+OPENSSL_LIB=lib
 
 CC = gcc
 CFLAGS = -Wall -g

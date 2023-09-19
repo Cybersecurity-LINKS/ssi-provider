@@ -1,6 +1,6 @@
-OPENSSL_DIR=/home/pirug/openssl
-IOTA_DIR=/home/pirug/Desktop/iota.c
-OPENSSL_LIB=lib64
+OPENSSL_DIR=/home/pi/openssl
+IOTA_DIR=/home/pi/iota.c
+OPENSSL_LIB=lib
 
 CC      = gcc
 CFLAGS  +=\
