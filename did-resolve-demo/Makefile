@@ -1,5 +1,5 @@
-OPENSSL_DIR=/home/pirug/openssl
-OPENSSL_LIB=lib64
+OPENSSL_DIR=/home/pi/openssl
+OPENSSL_LIB=lib
 
 CC = gcc
 CFLAGS = -Wall -g

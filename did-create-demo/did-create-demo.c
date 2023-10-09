@@ -35,10 +35,9 @@ int main(void) {
 	fseek(authn_meth_fp, 0, SEEK_SET);
 	authentication_pem = malloc(f_size);
 
-    for (n = 0; n < f_size; n++) {
-	authentication_pem[n] = fgetc(authn_meth_fp);
-    }
-    
+	for (n = 0; n < f_size; n++) {
+		authentication_pem[n] = fgetc(authn_meth_fp);
+	}
     authentication_pem[f_size] = '\0';
 
     fclose(authn_meth_fp); 
