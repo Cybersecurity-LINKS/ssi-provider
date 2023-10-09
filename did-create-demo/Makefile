@@ -1,5 +1,4 @@
 OPENSSL_DIR=/home/pi/openssl
-TESTS_DIR=$(HOME)/Desktop/tests/id-gen/
 OPENSSL_LIB=lib
 
 CC = gcc
@@ -19,6 +18,3 @@ $(TARGET):
 	
 clean:
 	rm -f $(TARGET) create_mainnet.txt resolve_mainnet.txt update_mainnet.txt revoke_mainnet.txt channel.txt
-	
-install:
-	cp $(TARGET) $(TEST_DIR)

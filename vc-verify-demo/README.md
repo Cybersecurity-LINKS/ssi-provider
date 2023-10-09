@@ -1,6 +1,6 @@
 # demo
 
-`did-create-demo.c` lets you create a DID document given an authentication key and an assertion key.
+`vc-verify-demo.c` lets you verify a VC given the public key of the issuer.
 
     nano Makefile
 

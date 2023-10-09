@@ -1,6 +1,6 @@
 # demo
 
-`did-create-demo.c` lets you create a DID document given an authentication key and an assertion key.
+`vc-create-demo.c` lets you create a VC given the private key of the issuer and the DID of the subject.
 
     nano Makefile
 

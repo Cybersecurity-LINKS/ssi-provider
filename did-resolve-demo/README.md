@@ -1,6 +1,6 @@
 # demo
 
-`did-create-demo.c` lets you create a DID document given an authentication key and an assertion key.
+`did-resolve-demo.c` lets you resolve a DID document from the IOTA Tangle given its DID.
 
     nano Makefile
 
