@@ -38,4 +38,17 @@ Edit the first two lines specifying the right paths `OPENSSL_DIR=path/to/openssl
 
 ## Usage
 
-The address of the gateway node of the IOTA ledger can be changed in the file `did-internal.c` : `MAINNET_PUBLIC` is the address of the public gateway node, `MAINNET` is the address of the private gateway node. They are both synched with the mainnet.
+                ssiprovider.c
+                 |        |
+                 |        |
+          _______|        |_______
+         |                        |
+        vc.c                    did.c
+         |                        |
+         |                        |
+         |                        |
+    vc_internal.c           did_internal.c
+                                  |
+                                  |
+                                  |
+                                OTT.h
