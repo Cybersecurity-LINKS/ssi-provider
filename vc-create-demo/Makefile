@@ -1,4 +1,4 @@
-OPENSSL_DIR=/home/pirug/openssl
+OPENSSL_DIR=path/to/openssl
 OPENSSL_LIB=lib64
 
 

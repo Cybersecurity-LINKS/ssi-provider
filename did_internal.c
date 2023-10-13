@@ -1,3 +1,11 @@
+/*
+ * Copyright 2023 Fondazione Links. All Rights Reserved.
+ *
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 #include "did_internal.h"
 #include <time.h>
 #include <sys/time.h>
@@ -14,6 +22,10 @@
 
 #define TESTNET {.hostname = "api.lb-0.h.chrysalis-devnet.iota.cafe\0",\
                 .port = 80,\
+                .tls = false}
+                
+#define PRIVATE_TANGLE {.hostname = "chrysalis.linksfoundation.com",\
+                .port = 14265,\
                 .tls = false}
 
 static int get_key_type(EVP_PKEY *key)
@@ -236,7 +248,7 @@ int did_ott_create(DID_CTX *ctx)
 
     fprintf(stdout, "CREATE\n");
     
-    IOTA_Endpoint testnet0tls = MAINNET;
+    IOTA_Endpoint testnet0tls = PRIVATE_TANGLE;
 
     ret = OTT_write_init_channel(&ch_send, 1, &testnet0tls);
     if (ret != OTT_OK)
@@ -334,7 +346,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
 
     //memset(revoke, 0, INDEX_SIZE);
 
-    IOTA_Endpoint testnet0tls = MAINNET;
+    IOTA_Endpoint testnet0tls = PRIVATE_TANGLE;
 
     fprintf(stdout, "RESOLVE\n");
 
@@ -576,7 +588,7 @@ int did_ott_update(DID_CTX *ctx)
     
     fprintf(stdout, "UPDATE\n");
     
-    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
+    IOTA_Endpoint testnet0tls = PRIVATE_TANGLE;
 
     load_channel(&ch_rev, &testnet0tls);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
@@ -678,7 +690,7 @@ int did_ott_revoke(DID_CTX *ctx)
     memset(revoke_index, 0, INDEX_SIZE);
     memset(write_buff, 0, REVOKE_MSG_SIZE);
 
-    IOTA_Endpoint testnet0tls = MAINNET_PUBLIC;
+    IOTA_Endpoint testnet0tls = PRIVATE_TANGLE;
 
     load_channel(&ch_send, &testnet0tls);
 

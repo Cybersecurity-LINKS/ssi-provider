@@ -1,6 +1,6 @@
-OPENSSL_DIR=/home/pi/openssl
-IOTA_DIR=/home/pi/iota.c
-OPENSSL_LIB=lib
+OPENSSL_DIR=path/to/openssl
+IOTA_DIR=path/to/iota.c
+OPENSSL_LIB=lib64
 
 CC      = gcc
 CFLAGS  +=\

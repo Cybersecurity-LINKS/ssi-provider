@@ -1,5 +1,5 @@
-OPENSSL_DIR=/home/pi/openssl
-OPENSSL_LIB=lib
+OPENSSL_DIR=path/to/openssl
+OPENSSL_LIB=lib64
 
 CC = gcc
 CFLAGS = -Wall -g

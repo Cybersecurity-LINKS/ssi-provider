@@ -30,7 +30,7 @@ At line 19 replace `--disable-shared` with `cxxflags=-fPIC`, and then
     cd path/to/ssiprovider
     nano Makefile
 
-Edit the first two lines specifying the right paths `OPENSSL_DIR=/path/to/openssl` , `IOTA_DIR=/path/to/iota.c` and `OPENSSL_DIR=/path/to/lib`, and then
+Edit the first two lines specifying the right paths `OPENSSL_DIR=path/to/openssl` , `IOTA_DIR=path/to/iota.c` and `OPENSSL_LIB=<lib/lib64>`, and then
 
     make
     make install
