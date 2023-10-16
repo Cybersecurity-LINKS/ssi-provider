@@ -41,33 +41,6 @@
 
 #define MAX_DID_FIELD            1000
 
-/* typedef struct ott_buf {
-    unsigned char *p;
-    size_t len;
-} ott_buf;
-
-typedef struct method {
-    ott_buf id;
-    int type;
-    ott_buf controller;
-    ott_buf pk_pem;
-    int method_type;
-    //struct method *next;
-} method;
-
-typedef struct context {
-    ott_buf val;
-    struct context *next;
-} context;
-
-typedef struct did_document {
-    context atContext;
-    ott_buf id;
-    ott_buf created;
-    method authMethod;
-    method assertionMethod;
-} did_document; */
-
 typedef struct method {
 	char *id;
 	char *type;
