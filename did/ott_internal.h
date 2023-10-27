@@ -6,17 +6,16 @@
  * at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-#ifndef DID_METHOD_H
-#define DID_METHOD_H
+#ifndef OTT_UTIL_H
+#define OTT_UTIL_H
 
-#include "OTT.h"
+#include "ott_primitives.h"
 #include "time.h"
 #include <string.h>
 
 #define DID_PREFIX_LEN          8+1
 #define DID_PREFIX              "did:ott:"
 
-//here we define the contexts
 #define CONTEXT_DID_V1          "https://www.w3.org/ns/did/v1"
 
 #define DID_LEN                 (INDEX_HEX_SIZE + DID_PREFIX_LEN)
@@ -57,14 +56,12 @@ typedef struct did_document {
 } DID_CTX;
 
 typedef enum {
-    //da inserirne anche altre se servono
     RsaVerificationKey2023,             //0
     EcdsaSecp256r1VerificationKey2023,  //1
     Ed25519VerificationKey2023,         //2
 } KEY_TYPES;
 
 typedef enum {
-    //da aggiungerne altri se si vuole
     AuthenticationMethod,
     AssertionMethod
 } METHOD_TYPES;
@@ -77,6 +74,6 @@ int did_ott_update(DID_CTX *ctx);
 
 int did_ott_revoke(DID_CTX *ctx);
 
-#endif //DID_METHOD_H
+#endif
 
 

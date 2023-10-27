@@ -6,7 +6,7 @@
  * at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-#include "vc_internal.h"
+#include "dm1_internal.h"
 #include <openssl/rsa.h>
 
 static int get_key_type(EVP_PKEY *key)

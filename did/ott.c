@@ -11,24 +11,22 @@
 #include <openssl/core_names.h>
 #include <openssl/err.h>
 #include <openssl/params.h>
-#include "did_internal.h"
+#include "ott_internal.h"
+#include "../ssiprov.h"
 
-static OSSL_FUNC_did_newctx_fn did_newctx;
-static OSSL_FUNC_did_create_fn did_create;
-static OSSL_FUNC_did_resolve_fn did_resolve;
-static OSSL_FUNC_did_update_fn did_update;
-static OSSL_FUNC_did_revoke_fn did_revoke;
-static OSSL_FUNC_did_freectx_fn did_freectx;
-static OSSL_FUNC_did_set_ctx_params_fn did_set_ctx_params;
-static OSSL_FUNC_did_get_ctx_params_fn did_get_ctx_params;
 
-void *did_newctx(void *provctx)
-{ // should i do something with provctx?
+static OSSL_FUNC_did_newctx_fn ott_newctx;
+static OSSL_FUNC_did_create_fn ott_create;
+static OSSL_FUNC_did_resolve_fn ott_resolve;
+static OSSL_FUNC_did_update_fn ott_update;
+static OSSL_FUNC_did_revoke_fn ott_revoke;
+static OSSL_FUNC_did_freectx_fn ott_freectx;
+static OSSL_FUNC_did_set_ctx_params_fn ott_set_ctx_params;
+static OSSL_FUNC_did_get_ctx_params_fn ott_get_ctx_params;
 
+void *ott_newctx(void *provctx)
+{
     DID_CTX *ctx;
-
-    /*if (!ossl_prov_is_running())
-        return NULL;*/
 
     ctx = OPENSSL_zalloc(sizeof(*ctx));
     if (ctx == NULL)
@@ -39,9 +37,8 @@ void *did_newctx(void *provctx)
     return ctx;
 }
 
-void did_freectx(void *didctx)
+void ott_freectx(void *didctx)
 {
-
     DID_CTX *ctx = (DID_CTX *)didctx;
 
     if (ctx != NULL)
@@ -114,7 +111,7 @@ void did_freectx(void *didctx)
     }
 }
 
-char *did_create(void *didctx, OSSL_PARAM params[]){
+char *ott_create(void *didctx, OSSL_PARAM params[]){
 
     /* printf("DID OTT CREATE\n"); */
     
@@ -159,7 +156,7 @@ fail:
     return NULL;
 }
 
-int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
+int ott_resolve(void *didctx, char *did, OSSL_PARAM params[]){
 
     DID_CTX *ctx = (DID_CTX *)didctx;
 
@@ -185,14 +182,14 @@ int did_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     }
 
     /* return the fields of the DID DOCUMENT through params[] */
-    if(!did_get_ctx_params((void *)ctx, params))
+    if(!ott_get_ctx_params((void *)ctx, params))
         return 0;
 
     printf("RESOLVE SUCCESSFUL\n");
     return 1;
 }
 
-char* did_update(void *didctx, OSSL_PARAM params[]) {
+char* ott_update(void *didctx, OSSL_PARAM params[]) {
 
     /* printf("DID OTT UPDATE\n"); */
 
@@ -237,7 +234,7 @@ fail:
     return NULL;
 }
 
-int did_revoke(void *didctx){
+int ott_revoke(void *didctx){
     
     DID_CTX *ctx = (DID_CTX *)didctx;
     
@@ -250,12 +247,12 @@ int did_revoke(void *didctx){
     return 1;
 }
 
-int did_set_ctx_params(void *didctx, const OSSL_PARAM params[]){
+int ott_set_ctx_params(void *didctx, const OSSL_PARAM params[]){
 
     return 1;
 }
 
-int did_get_ctx_params(void *didctx, OSSL_PARAM params[]){
+int ott_get_ctx_params(void *didctx, OSSL_PARAM params[]){
 
     DID_CTX *ctx = (DID_CTX *)didctx;
     OSSL_PARAM *p;
@@ -312,14 +309,14 @@ int did_get_ctx_params(void *didctx, OSSL_PARAM params[]){
     return 1;  
 }
 
-const OSSL_DISPATCH did_crud_functions[] = {
-    {OSSL_FUNC_DID_NEWCTX, (void(*)(void))did_newctx},
-    {OSSL_FUNC_DID_CREATE, (void(*)(void))did_create},
-    {OSSL_FUNC_DID_RESOLVE, (void(*)(void))did_resolve},
-    {OSSL_FUNC_DID_UPDATE, (void(*)(void))did_update},
-    {OSSL_FUNC_DID_REVOKE, (void(*)(void))did_revoke},
-    {OSSL_FUNC_DID_FREECTX, (void(*)(void))did_freectx},
-    {OSSL_FUNC_DID_SET_CTX_PARAMS, (void(*)(void))did_set_ctx_params},
-    {OSSL_FUNC_DID_GET_CTX_PARAMS, (void(*)(void))did_get_ctx_params},
+const OSSL_DISPATCH ott_functions[] = {
+    {OSSL_FUNC_DID_NEWCTX, (void(*)(void))ott_newctx},
+    {OSSL_FUNC_DID_CREATE, (void(*)(void))ott_create},
+    {OSSL_FUNC_DID_RESOLVE, (void(*)(void))ott_resolve},
+    {OSSL_FUNC_DID_UPDATE, (void(*)(void))ott_update},
+    {OSSL_FUNC_DID_REVOKE, (void(*)(void))ott_revoke},
+    {OSSL_FUNC_DID_FREECTX, (void(*)(void))ott_freectx},
+    {OSSL_FUNC_DID_SET_CTX_PARAMS, (void(*)(void))ott_set_ctx_params},
+    {OSSL_FUNC_DID_GET_CTX_PARAMS, (void(*)(void))ott_get_ctx_params},
     { 0, NULL }
 };

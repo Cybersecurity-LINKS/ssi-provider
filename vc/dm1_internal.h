@@ -7,7 +7,7 @@
  */
 
 #include <string.h>
-#include "cJSON.h"
+#include "../cJSON.h"
 #include <openssl/evp.h>
 
 #define CONTEXT_VC_V1          "https://www.w3.org/2018/credentials/v1"

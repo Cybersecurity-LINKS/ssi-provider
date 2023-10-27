@@ -6,7 +6,8 @@
  * at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-#include "vc_internal.h"
+#include "dm1_internal.h"
+#include "../ssiprov.h"
 #include <time.h>
 #include <sys/time.h>
 #include <openssl/err.h>
@@ -15,121 +16,102 @@
 #include <openssl/core_names.h>
 #include <openssl/params.h>
 
-static OSSL_FUNC_vc_newctx_fn vc_newctx;
-static OSSL_FUNC_vc_create_fn vc_create;
-static OSSL_FUNC_vc_verify_fn vc_verify;
-static OSSL_FUNC_vc_serialize_fn vc_serialize;
-static OSSL_FUNC_vc_deserialize_fn vc_deserialize;
-static OSSL_FUNC_vc_freectx_fn vc_freectx;
-static OSSL_FUNC_vc_set_ctx_params_fn vc_set_ctx_params;
-static OSSL_FUNC_vc_get_ctx_params_fn vc_get_ctx_params;
+static OSSL_FUNC_vc_newctx_fn dm1_newctx;
+static OSSL_FUNC_vc_create_fn dm1_create;
+static OSSL_FUNC_vc_verify_fn dm1_verify;
+static OSSL_FUNC_vc_serialize_fn dm1_serialize;
+static OSSL_FUNC_vc_deserialize_fn dm1_deserialize;
+static OSSL_FUNC_vc_freectx_fn dm1_freectx;
+static OSSL_FUNC_vc_set_ctx_params_fn dm1_set_ctx_params;
+static OSSL_FUNC_vc_get_ctx_params_fn dm1_get_ctx_params;
 
-void *vc_newctx(void *provctx)
-{ // should i do something with provctx?
-
+void *dm1_newctx(void *provctx)
+{ 
     VC_CTX *ctx;
 
-    /*if (!ossl_prov_is_running())
-        return NULL;*/
-
     ctx = OPENSSL_zalloc(sizeof(*ctx));
-    if (ctx == NULL)
-    {
+    if (ctx == NULL) {
         ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
         return NULL;
     }
     return ctx;
 }
 
-void vc_freectx(void *vcctx)
+void dm1_freectx(void *vcctx)
 {
 
     VC_CTX *ctx = (VC_CTX *)vcctx;
 
-    if (ctx != NULL)
-    {
-        if (ctx->atContext != NULL)
-        {
+    if (ctx != NULL) {
+        if (ctx->atContext != NULL) {
             OPENSSL_free(ctx->atContext);
             ctx->atContext = NULL;
         }
 
-        if (ctx->id != NULL)
-        {
+        if (ctx->id != NULL) {
             OPENSSL_free(ctx->id);
             ctx->id = NULL;
         }
 
-        if (ctx->type != NULL)
-        {
+        if (ctx->type != NULL) {
             OPENSSL_free(ctx->type);
             ctx->type = NULL;
         }
 
-        if (ctx->issuer != NULL)
-        {
+        if (ctx->issuer != NULL) {
             OPENSSL_free(ctx->issuer);
             ctx->issuer = NULL;
         }
 
-        if (ctx->issuanceDate != NULL)
-        {
+        if (ctx->issuanceDate != NULL) {
             OPENSSL_free(ctx->issuanceDate);
             ctx->issuanceDate = NULL;
         }
 
-        if (ctx->expirationDate != NULL)
-        {
+        if (ctx->expirationDate != NULL) {
             OPENSSL_free(ctx->expirationDate);
             ctx->expirationDate = NULL;
         }
 
-        if (ctx->credentialSubject.id != NULL)
-        {
+        if (ctx->credentialSubject.id != NULL) {
             OPENSSL_free(ctx->credentialSubject.id);
             ctx->credentialSubject.id = NULL;
         }
 
-        if (ctx->proof.type != NULL)
-        {
+        if (ctx->proof.type != NULL) {
             OPENSSL_free(ctx->proof.type);
             ctx->proof.type = NULL;
         }
 
-        if (ctx->proof.created != NULL)
-        {
+        if (ctx->proof.created != NULL) {
             OPENSSL_free(ctx->proof.created);
             ctx->proof.created = NULL;
         }
 
-        if (ctx->proof.purpose != NULL)
-        {
+        if (ctx->proof.purpose != NULL) {
             OPENSSL_free(ctx->proof.purpose);
             ctx->proof.purpose = NULL;
         }
 
-        if (ctx->proof.verificationMethod != NULL)
-        {
+        if (ctx->proof.verificationMethod != NULL) {
             OPENSSL_free(ctx->proof.verificationMethod);
             ctx->proof.verificationMethod = NULL;
         }
 
-        if (ctx->proof.value != NULL)
-        {
+        if (ctx->proof.value != NULL) {
             OPENSSL_free(ctx->proof.value);
             ctx->proof.value = NULL;
         }
     }
 }
 
-char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
+char *dm1_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
 {
     const OSSL_PARAM *p;
     VC_CTX *ctx = (VC_CTX *)vcctx;
 
     cJSON *vc = cJSON_CreateObject();
-    if (vc == NULL)
-    {
+    if (vc == NULL) {
         return NULL;
     }
 
@@ -138,8 +120,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     ctx->atContext = OPENSSL_strdup(CONTEXT_VC_V1);
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ID);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -150,8 +131,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     ctx->type = OPENSSL_strdup(VC_TYPE);
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUER);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -164,8 +144,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     strftime(ctx->issuanceDate, 100, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -174,8 +153,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -192,8 +170,7 @@ char *vc_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     retrieved from params[], some other are
     generated on the fly in the proof creation. */
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_VERIFICATION_METHOD);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -215,7 +192,7 @@ fail:
     return NULL;
 }
 
-int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
+int dm1_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[]) 
 {
     VC_CTX *ctx = (VC_CTX *)vcctx;
     const OSSL_PARAM *p;
@@ -226,15 +203,13 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         return 0;
 
     cJSON *vc = cJSON_CreateObject();
-    if (vc == NULL)
-    {
+    if (vc == NULL) {
         return 0;
     }
 
     /* Fill ctx with metadata and claims. */
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_CONTEXT);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -243,8 +218,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ID);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -253,8 +227,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_TYPE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -263,8 +236,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUER);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -273,8 +245,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUANCE_DATE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -283,8 +254,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -293,8 +263,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -303,8 +272,7 @@ int vc_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_VALUE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             goto fail;
@@ -331,9 +299,8 @@ fail:
     return 0;
 }
 
-int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
+int dm1_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
 {
-
     VC_CTX *ctx = (VC_CTX *)vcctx;
 
     if (ctx == NULL)
@@ -345,20 +312,14 @@ int vc_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
     if (!vc_cjson_parse(ctx, vc_stream))
         return 0;
 
-    /* if (ctx->atContext == NULL || ctx->id == NULL || ctx->type == NULL || ctx->issuer == NULL || ctx->issuanceDate == NULL 
-        || ctx->expirationDate == NULL || ctx->credentialSubject.id == NULL ||
-        ctx->proof.type == NULL || ctx->proof.created == NULL || ctx->proof.purpose == NULL ||
-        ctx->proof.verificationMethod == NULL || ctx->proof.value == NULL)
-        return 0; */
-
     /* return the fields of the VC through params[] */
-    if (!vc_get_ctx_params((void *)ctx, params))
+    if (!dm1_get_ctx_params((void *)ctx, params))
         return 0;
 
     return 1;
 }
 
-unsigned char *vc_serialize(void *vcctx, OSSL_PARAM params[])
+char *dm1_serialize(void *vcctx, OSSL_PARAM params[])
 {
     VC_CTX *ctx = (VC_CTX *)vcctx;
 
@@ -369,7 +330,7 @@ unsigned char *vc_serialize(void *vcctx, OSSL_PARAM params[])
 
     /* retrieves from params[] the fields of the VC
     and assign it to ctx  */
-    if (!vc_set_ctx_params((void *)ctx, params))
+    if (!dm1_set_ctx_params((void *)ctx, params))
         return NULL;
 
     cJSON *vc = cJSON_CreateObject();
@@ -384,9 +345,9 @@ unsigned char *vc_serialize(void *vcctx, OSSL_PARAM params[])
     if (!vc_fill_proof(vc, ctx, NULL))
         goto fail;
 
-    unsigned char *vc_stream = NULL;
+    char *vc_stream = NULL;
     /* serialize the VC */
-    vc_stream = (unsigned char *)strdup(cJSON_Print(vc));
+    vc_stream = strdup(cJSON_Print(vc));
     cJSON_Delete(vc);
     return vc_stream;
 
@@ -395,9 +356,8 @@ fail:
     return NULL;
 }
 
-int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
+int dm1_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
 {
-
     VC_CTX *ctx = (VC_CTX *)vcctx;
     const OSSL_PARAM *p;
 
@@ -407,8 +367,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
         return 1;
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_CONTEXT);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -417,8 +376,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ID);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -427,8 +385,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_TYPE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -437,8 +394,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUER);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -447,8 +403,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_ISSUANCE_DATE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -457,8 +412,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_EXPIRATION_DATE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -467,8 +421,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_SUBJECT);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -477,8 +430,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_TYPE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -487,8 +439,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_CREATED);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -497,8 +448,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_PURPOSE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -507,8 +457,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_VERIFICATION_METHOD);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -517,8 +466,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_VC_PARAM_PROOF_VALUE);
-    if (p != NULL)
-    {
+    if (p != NULL) {
         char *str = NULL;
         if (!OSSL_PARAM_get_utf8_string(p, &str, MAX_VC_FIELD))
             return 0;
@@ -529,7 +477,7 @@ int vc_set_ctx_params(void *vcctx, const OSSL_PARAM params[])
     return 1;
 }
 
-int vc_get_ctx_params(void *vcctx, OSSL_PARAM params[])
+int dm1_get_ctx_params(void *vcctx, OSSL_PARAM params[])
 {
 
     VC_CTX *ctx = (VC_CTX *)vcctx;
@@ -592,12 +540,12 @@ int vc_get_ctx_params(void *vcctx, OSSL_PARAM params[])
 }
 
 const OSSL_DISPATCH vc_functions[] = {
-    {OSSL_FUNC_VC_NEWCTX, (void (*)(void))vc_newctx},
-    {OSSL_FUNC_VC_CREATE, (void (*)(void))vc_create},
-    {OSSL_FUNC_VC_VERIFY, (void (*)(void))vc_verify},
-    {OSSL_FUNC_VC_SERIALIZE, (void (*)(void))vc_serialize},
-    {OSSL_FUNC_VC_DESERIALIZE, (void (*)(void))vc_deserialize},
-    {OSSL_FUNC_VC_FREECTX, (void (*)(void))vc_freectx},
-    {OSSL_FUNC_VC_SET_CTX_PARAMS, (void (*)(void))vc_set_ctx_params},
-    {OSSL_FUNC_VC_GET_CTX_PARAMS, (void (*)(void))vc_get_ctx_params},
+    {OSSL_FUNC_VC_NEWCTX, (void (*)(void))dm1_newctx},
+    {OSSL_FUNC_VC_CREATE, (void (*)(void))dm1_create},
+    {OSSL_FUNC_VC_VERIFY, (void (*)(void))dm1_verify},
+    {OSSL_FUNC_VC_SERIALIZE, (void (*)(void))dm1_serialize},
+    {OSSL_FUNC_VC_DESERIALIZE, (void (*)(void))dm1_deserialize},
+    {OSSL_FUNC_VC_FREECTX, (void (*)(void))dm1_freectx},
+    {OSSL_FUNC_VC_SET_CTX_PARAMS, (void (*)(void))dm1_set_ctx_params},
+    {OSSL_FUNC_VC_GET_CTX_PARAMS, (void (*)(void))dm1_get_ctx_params},
     {0, NULL}};

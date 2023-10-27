@@ -6,7 +6,7 @@
  * at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-#include "did_internal.h"
+#include "ott_internal.h"
 #include <time.h>
 #include <sys/time.h>
 #include <openssl/evp.h>
@@ -70,10 +70,6 @@ static char *did_doc_fill(DID_CTX *ctx)
 {
     cJSON *auth_method = NULL;
     cJSON *assrtn_method = NULL;
-    /* cJSON *atContext_cJson = NULL;
-    char time_buf[100];
-    char id_key[MAX_KEY_ID_LEN];
-    char index_key[KEY_INDEX_LEN]; */
 
     cJSON *did_doc = cJSON_CreateObject();
     if (did_doc == NULL)
@@ -136,16 +132,16 @@ static int save_channel(OTT_channel *ch)
 {
 
     FILE *fp = NULL;
-    // open the file in write binary mode
 
+    /* open the file in write binary mode */
     fp = fopen("channel.txt", "wb");
     if (fp == NULL)
     {
         return -1;
     }
-    // id
+    /* id */ 
     fwrite(&(ch->id), sizeof(uint16_t), 1, fp);
-    // node
+    /* node */
     fwrite(&(ch->node->tls), sizeof(bool), 1, fp);
     fwrite(&(ch->node->port), sizeof(uint16_t), 1, fp);
     fwrite(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
@@ -190,11 +186,6 @@ static int load_channel(OTT_channel *ch, IOTA_Endpoint *endpoint)
     fread(&(ch->node->tls), sizeof(bool), 1, fp);
     fread(&(ch->node->port), sizeof(uint16_t), 1, fp);
     fread(ch->node->hostname, sizeof(char), ENDPTNAME_SIZE, fp);
-
-    // fread(ch->first_index.berry, sizeof(uint8_t), SEED_SIZE, fp);
-    // fread(ch->first_index.index, sizeof(uint8_t), INDEX_SIZE, fp);
-    // fread(ch->first_index.keys.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
-    // fread(ch->first_index.keys.pub, sizeof(uint8_t), ED_PUBLIC_KEY_BYTES, fp);
     fread(ch->index, sizeof(uint8_t), INDEX_SIZE, fp);
     fread(ch->anchor, sizeof(uint8_t), INDEX_SIZE, fp);
     fread(ch->keys1.priv, sizeof(uint8_t), ED_PRIVATE_KEY_BYTES, fp);
@@ -240,7 +231,6 @@ int did_ott_create(DID_CTX *ctx)
     OTT_channel ch_send;
     BIO *authn_pubkey;
     BIO *assrtn_pubkey;
-    //int ret;
     char id_key[MAX_KEY_ID_LEN];
     char index_key[KEY_INDEX_LEN];
     char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1];
@@ -256,7 +246,8 @@ int did_ott_create(DID_CTX *ctx)
         return 0;
     }
 
-    index_bin = ch_send.index; // here i grab the start index that is my did
+    /* grab the start index that correspond to the DID */
+    index_bin = ch_send.index;
     ret = bin_2_hex(index_bin, INDEX_SIZE, index, INDEX_HEX_SIZE);
     if (ret != 0)
     {
@@ -314,7 +305,6 @@ int did_ott_create(DID_CTX *ctx)
     }
     fprintf(stdout, "[CH-id=%d] Messages sent: %d (%d bytes)\n", ch_send.id, ch_send.sent_msg, ch_send.sent_bytes);
 
-    //save_channel(&ch_send);
     snprintf(did_msgid, sizeof(did_msgid), "%s:%s", ctx->id, msg_id);
 
     OPENSSL_free(ctx->id);
@@ -339,31 +329,12 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     uint8_t read_buff[DATA_SIZE];
     uint16_t expected_size = DATA_SIZE;
     uint8_t ret = 0;
-    //uint8_t revoke[INDEX_SIZE];
-    //char msg_id[IOTA_MESSAGE_ID_HEX_BYTES + 1];
     char *msg_id;
-    char * token;
-
-    //memset(revoke, 0, INDEX_SIZE);
+    char *token;
 
     IOTA_Endpoint testnet0tls = PRIVATE_TANGLE;
 
     fprintf(stdout, "RESOLVE\n");
-
-/*    ret = OTT_read_init_channel(&ch_read, 1, msg_id, &testnet0tls);
-    if (ret != 0)
-        return DID_RESOLVE_ERROR;
-
-     // extract hex_index and convert to index
-    ret = sub_string(did, DID_PREFIX_LEN - 1, INDEX_HEX_SIZE - 1, hex_index); // len must not include the \0
-    if (ret != 0)
-        return DID_RESOLVE_ERROR;
-
-    ret = hex_2_bin(hex_index, INDEX_HEX_SIZE, index, INDEX_SIZE);
-    if (ret != 0)
-        return DID_RESOLVE_ERROR;
-
-    set_channel_index_read(&ch_read, index); */
     
     token = strtok(did, ":");
     if(token == NULL)
@@ -384,20 +355,11 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     if (ret != 0)
         return DID_RESOLVE_ERROR;
 
-    //fprintf(stdout, "%s\n", did);
-
-
     ret = hex_2_bin(hex_index1, INDEX_HEX_SIZE, index, INDEX_SIZE);
     if (ret != 0)
         return DID_RESOLVE_ERROR;
 
-    //fprintf(stdout, "qui3333333\n");
     set_channel_index_read(&ch_read, index);
-
-
-   // printf("%s\n", did);
-    //printf("%s\n", hex_index);
-   // printf("%s\n", hex_index1);
 
     ret = OTT_read(&ch_read, read_buff, &expected_size);
 
@@ -656,10 +618,6 @@ int did_ott_update(DID_CTX *ctx)
     {
         goto fail;
     }
-
-    // fprintf(stdout, "%s\n", did_doc);
-    // fprintf(stdout, "DID Document length = %lu\n", strlen(did_doc));
-    // save the new did
 
     ret = OTT_write(&ch_send, (unsigned char *)did_doc, strlen(did_doc), NULL, false);
     if (ret != OTT_OK)

@@ -1,5 +1,5 @@
-OPENSSL_DIR=path/to/openssl
-IOTA_DIR=path/to/iota.c
+OPENSSL_DIR=/home/pirug/openssl
+IOTA_DIR=/home/pirug/Desktop/iota.c
 OPENSSL_LIB=lib64
 
 CC      = gcc
@@ -16,8 +16,8 @@ CFLAGS  +=\
 
 LDFLAGS= -shared -ldl -lm -liota_crypto -liota_core -liota_client -lcurl -lsodium\
 
-TARGET  = libssiprovider.so
-SOURCES = ssiprovider.c ssiprovider.h did.c did_internal.c did_internal.h vc_internal.h vc_internal.c vc.c OTT_def.h OTT.c OTT.h cJSON.c cJSON.h 
+TARGET = libssiprovider.so
+SOURCES = ssiprov.c ssiprov.h did/ott.c did/ott_internal.c did/ott_internal.h did/ott_primitives.c did/ott_primitives.h vc/dm1_internal.h vc/dm1_internal.c vc/dm1.c cJSON.c cJSON.h 
 OBJECTS = $(SOURCES:.c=.o)
 
 
@@ -27,7 +27,7 @@ $(TARGET): $(OBJECTS)
 	$(CC)  $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 clean:
-	rm -f ssiprovider.o did.o did_internal.o vc.o vc_internal.o OTT.o cJSON.o libssiprovider.so
+	rm -f ssiprov.o ott.o ott_internal.o ott_primitives.o dm1.o dm1_internal.o ott_primitives.o cJSON.o libssiprovider.so
 
 install:
 	
