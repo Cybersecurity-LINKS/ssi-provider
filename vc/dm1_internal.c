@@ -1,9 +1,18 @@
 /*
- * Copyright 2023 Fondazione Links. All Rights Reserved.
+ * Copyright 2023 Fondazione Links.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Licensed under the Apache License 2.0 (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * at http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.	
+ *
  */
 
 #include "dm1_internal.h"
@@ -38,7 +47,6 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, c
     EVP_PKEY_CTX *pctx = NULL;
     size_t siglen = 0;
     unsigned char *sig = NULL;
-    int ret;
 
     /* compute signature following OpenSSL procedure */
     mctx = EVP_MD_CTX_new();
@@ -64,7 +72,7 @@ static int compute_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, c
     *b64_sig = (char *)OPENSSL_malloc(b64_sig_size);
     if (*b64_sig == NULL)
         goto fail;
-    if(!EVP_EncodeBlock(*b64_sig, sig, siglen))
+    if(!EVP_EncodeBlock((unsigned char *)*b64_sig, sig, siglen))
         goto fail;
     OPENSSL_free(sig);
     return 1;
@@ -109,9 +117,8 @@ static int verify_sig(char *md_name, EVP_PKEY *pkey, int key_type, char *tbs, ch
     sig = (unsigned char *)OPENSSL_malloc(sig_size);
     if (sig == NULL)
         return 0;
-    int ret;
     
-    if (!EVP_DecodeBlock(sig, b64_sig, strlen(b64_sig)))
+    if (!EVP_DecodeBlock(sig, (unsigned char *)b64_sig, strlen(b64_sig)))
         goto fail;
 
     /* verify signature following standard OpenSSL procedure */
@@ -137,7 +144,7 @@ fail:
     return 0;
 }
 
-int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream)
+int dm1_cjson_parse(VC_CTX *ctx, char *vc_stream)
 {
 
     cJSON *vc_json = cJSON_Parse((const char *)vc_stream);
@@ -268,7 +275,7 @@ fail:
 }
 
 /* fill the metadata and claim section of the VC */
-int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
+int dm1_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
 {
 
     //@context
@@ -325,7 +332,7 @@ fail:
 }
 
 /* fill the proof section of the VC*/
-int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
+int dm1_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 {
     // proof
     cJSON *proof = cJSON_CreateObject();
@@ -408,7 +415,7 @@ fail:
 }
 
 /* check the VC structure is valid */
-int vc_validate(VC_CTX *ctx)
+int dm1_validate(VC_CTX *ctx)
 {
     time_t now = time(0);
     char curr_time[50];
@@ -438,7 +445,7 @@ int vc_validate(VC_CTX *ctx)
 }
 
 /* check the VC proof is valid */
-int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
+int dm1_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 {
     char *md_name = NULL;
     int key_type;

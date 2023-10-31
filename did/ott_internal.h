@@ -66,13 +66,13 @@ typedef enum {
     AssertionMethod
 } METHOD_TYPES;
 
-int did_ott_create(DID_CTX *ctx);
+int ott_create_internal(DID_CTX *ctx);
 
-int did_ott_resolve(DID_CTX *ctx, char *did);
+int ott_resolve_internal(DID_CTX *ctx, char *did);
 
-int did_ott_update(DID_CTX *ctx);
+int ott_update_internal(DID_CTX *ctx);
 
-int did_ott_revoke(DID_CTX *ctx);
+int ott_revoke_internal(DID_CTX *ctx);
 
 #endif
 

@@ -148,7 +148,7 @@ char *ott_create(void *didctx, OSSL_PARAM params[]){
         OPENSSL_free(str);
     }
 
-    if(!did_ott_create(ctx))
+    if(!ott_create_internal(ctx))
         goto fail;
 
     return ctx->id;
@@ -161,22 +161,24 @@ int ott_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     DID_CTX *ctx = (DID_CTX *)didctx;
 
     int ret;
-    /* printf("DID OTT RESOLVE\n"); */
     
     if (did == NULL) {
         return 0;
     }
 
-    ret = did_ott_resolve(ctx, did);
+    ret = ott_resolve_internal(ctx, did);
     if (ret == DID_RESOLVE_ERROR){
+        printf("---\n");
     	printf("DID RESOLVE INTERNAL ERROR\n");
         return 0;
     }
     else if (ret == DID_RESOLVE_REVOKED){
+        printf("---\n");
     	printf("DID DOCUMENT REVOKED\n");
         return 0;
     }
     else if (ret == DID_RESOLVE_NOT_FOUND){
+        printf("---\n");
     	printf("DID DOCUMENT NOT FOUND\n");
         return 0;
     }
@@ -185,7 +187,7 @@ int ott_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     if(!ott_get_ctx_params((void *)ctx, params))
         return 0;
 
-    printf("RESOLVE SUCCESSFUL\n");
+    printf("\nDID RESOLVE SUCCESSFUL\n");
     return 1;
 }
 
@@ -226,7 +228,7 @@ char* ott_update(void *didctx, OSSL_PARAM params[]) {
         OPENSSL_free(str);
     }
 
-    if(!did_ott_update(ctx))
+    if(!ott_update_internal(ctx))
         goto fail;
 
     return ctx->id;
@@ -241,7 +243,7 @@ int ott_revoke(void *didctx){
     /* printf("DID OTT REVOKE\n"); */
     printf("%s\n",ctx->id);
 
-    if(!did_ott_revoke(ctx))
+    if(!ott_revoke_internal(ctx))
         return 0;
 
     return 1;

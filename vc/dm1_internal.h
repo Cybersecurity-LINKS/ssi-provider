@@ -1,9 +1,18 @@
 /*
- * Copyright 2023 Fondazione Links. All Rights Reserved.
+ * Copyright 2023 Fondazione Links.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Licensed under the Apache License 2.0 (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * at http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.	
+ *
  */
 
 #include <string.h>
@@ -45,12 +54,12 @@ typedef enum {
     Ed25519VerificationKey2023,         //2
 } KEY_TYPES;
 
-int vc_cjson_parse(VC_CTX *ctx, unsigned char *vc_stream);
+int dm1_cjson_parse(VC_CTX *ctx, char *vc_stream);
 
-int vc_fill_metadata_claim(cJSON *vc, VC_CTX *ctx);
+int dm1_fill_metadata_claim(cJSON *vc, VC_CTX *ctx);
 
-int vc_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
+int dm1_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
 
-int vc_validate(VC_CTX *ctx);
+int dm1_validate(VC_CTX *ctx);
 
-int vc_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
+int dm1_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);

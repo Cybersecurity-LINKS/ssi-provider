@@ -1,9 +1,18 @@
 /*
- * Copyright 2023 Fondazione Links. All Rights Reserved.
+ * Copyright 2023 Fondazione Links.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Licensed under the Apache License 2.0 (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * at http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.	
+ *
  */
 
 #include <openssl/provider.h>
@@ -20,7 +29,7 @@ static const OSSL_ALGORITHM ssi_did[] = {
 
 
 static const OSSL_ALGORITHM ssi_vc[] = {
-    {"VC", "provider=ssi", dm1_functions},
+    {"DM1:dm1", "provider=ssi", dm1_functions},
     {NULL, NULL, NULL}};
 
 static const OSSL_PARAM *ssi_gettable_params(void *provctx)

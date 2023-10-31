@@ -222,7 +222,7 @@ static int sub_string(const char *input, int offset, int len, char *dest)
     return 0;
 }
 
-int did_ott_create(DID_CTX *ctx)
+int ott_create_internal(DID_CTX *ctx)
 {
     uint8_t *index_bin;
     char index[INDEX_HEX_SIZE];
@@ -320,7 +320,7 @@ fail:
     return 0;
 }
 
-int did_ott_resolve(DID_CTX *ctx, char *did)
+int ott_resolve_internal(DID_CTX *ctx, char *did)
 {
     char hex_index[INDEX_HEX_SIZE];
     char *hex_index1;
@@ -333,8 +333,6 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     char *token;
 
     IOTA_Endpoint testnet0tls = PRIVATE_TANGLE;
-
-    fprintf(stdout, "RESOLVE\n");
     
     token = strtok(did, ":");
     if(token == NULL)
@@ -361,6 +359,8 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
 
     set_channel_index_read(&ch_read, index);
 
+    fprintf(stdout, "---\nDID RESOLVE ...\n");
+
     ret = OTT_read(&ch_read, read_buff, &expected_size);
 
     if (ret == OTT_REVOKE)
@@ -368,16 +368,15 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     else if (ret != OTT_OK)
         return DID_RESOLVE_NOT_FOUND;
 
-    fprintf(stdout, "OTT_read ret:");
+    /* fprintf(stdout, "OTT_read ret:");
     fprintf(stdout, "\n\t val=%d", ret);
     fprintf(stdout, "\n\t expctsize=%d \t", expected_size);
     fprintf(stdout, "\n\t msg_read=%d \t", ch_read.recv_msg);
-    fprintf(stdout, "\n\t bytes_read=%d \t", ch_read.recv_bytes);
+    fprintf(stdout, "\n\t bytes_read=%d \t", ch_read.recv_bytes); */
 
     read_buff[ch_read.recv_bytes] = '\0';
-    fprintf(stdout, "\n\nReceived DID Document: \n");
+    fprintf(stdout, "\nPeer DID document\n");
     fprintf(stdout, "%s\n", read_buff);
-
 
     // parsing
     cJSON *did_document_json = cJSON_Parse((const char *)read_buff);
@@ -534,7 +533,7 @@ int did_ott_resolve(DID_CTX *ctx, char *did)
     return DID_RESOLVE_OK;
 }
 
-int did_ott_update(DID_CTX *ctx)
+int ott_update_internal(DID_CTX *ctx)
 {
     char newdid[DID_LEN] = "";
     uint8_t *index_bin;
@@ -637,7 +636,7 @@ fail:
     return DID_UPDATE_ERROR;
 }
 
-int did_ott_revoke(DID_CTX *ctx)
+int ott_revoke_internal(DID_CTX *ctx)
 {
     OTT_channel ch_send;
     uint8_t write_buff[REVOKE_MSG_SIZE];

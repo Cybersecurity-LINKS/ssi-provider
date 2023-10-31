@@ -1,9 +1,18 @@
 /*
- * Copyright 2023 Fondazione Links. All Rights Reserved.
+ * Copyright 2023 Fondazione Links.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Licensed under the Apache License 2.0 (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * at http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.	
+ *
  */
 
 #include "dm1_internal.h"
@@ -163,7 +172,7 @@ char *dm1_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
 
     /* Starting from ctx fill the JSON object with
     credential metadata and claims. */
-    if (!vc_fill_metadata_claim(vc, ctx))
+    if (!dm1_fill_metadata_claim(vc, ctx))
         goto fail;
 
     /* Fill ctx with proof. Some fields are
@@ -179,7 +188,7 @@ char *dm1_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     /* Generate the proof and fill the JSON object with the proof */
-    if (!vc_fill_proof(vc, ctx, pkey))
+    if (!dm1_fill_proof(vc, ctx, pkey))
         goto fail;
 
     /* Return the serialized vc */
@@ -280,16 +289,22 @@ int dm1_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
         OPENSSL_free(str);
     }
 
-    if (!vc_validate(ctx))
+    /* printf("Peer VC id: \"%s\"\n", ctx->id); */
+
+    if (!dm1_validate(ctx))
         goto fail;
 
     /* Starting from ctx fill the JSON object with
     credential metadata and claims. */
-    if (!vc_fill_metadata_claim(vc, ctx))
+    if (!dm1_fill_metadata_claim(vc, ctx))
         goto fail;
 
-    if (!vc_verify_proof(vc, ctx, pkey))
+    if (!dm1_verify_proof(vc, ctx, pkey)) {
+        printf("\nVC VERIFICATION FAILURE\n");
         goto fail;
+    }
+
+    printf("\nVC VERIFICATION SUCCESSFUL\n");
 
     cJSON_Delete(vc);
     return 1;
@@ -299,7 +314,7 @@ fail:
     return 0;
 }
 
-int dm1_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
+int dm1_deserialize(void *vcctx, char *vc_stream, OSSL_PARAM params[])
 {
     VC_CTX *ctx = (VC_CTX *)vcctx;
 
@@ -309,7 +324,7 @@ int dm1_deserialize(void *vcctx, unsigned char *vc_stream, OSSL_PARAM params[])
         return 0;
 
     /* parse the serialized vc and save the fields in ctx */
-    if (!vc_cjson_parse(ctx, vc_stream))
+    if (!dm1_cjson_parse(ctx, vc_stream))
         return 0;
 
     /* return the fields of the VC through params[] */
@@ -337,12 +352,12 @@ char *dm1_serialize(void *vcctx, OSSL_PARAM params[])
 
     /* Starting from ctx fill the JSON object with
     credential metadata and claims. */
-    if (!vc_fill_metadata_claim(vc, ctx))
+    if (!dm1_fill_metadata_claim(vc, ctx))
         goto fail;
 
     /* Starting from ctx fill the JSON object with
     proof. */
-    if (!vc_fill_proof(vc, ctx, NULL))
+    if (!dm1_fill_proof(vc, ctx, NULL))
         goto fail;
 
     char *vc_stream = NULL;
@@ -539,7 +554,7 @@ int dm1_get_ctx_params(void *vcctx, OSSL_PARAM params[])
     return 1;
 }
 
-const OSSL_DISPATCH vc_functions[] = {
+const OSSL_DISPATCH dm1_functions[] = {
     {OSSL_FUNC_VC_NEWCTX, (void (*)(void))dm1_newctx},
     {OSSL_FUNC_VC_CREATE, (void (*)(void))dm1_create},
     {OSSL_FUNC_VC_VERIFY, (void (*)(void))dm1_verify},
