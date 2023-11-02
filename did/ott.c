@@ -187,14 +187,11 @@ int ott_resolve(void *didctx, char *did, OSSL_PARAM params[]){
     if(!ott_get_ctx_params((void *)ctx, params))
         return 0;
 
-    printf("\nDID RESOLVE SUCCESSFUL\n");
     return 1;
 }
 
 char* ott_update(void *didctx, OSSL_PARAM params[]) {
-
-    /* printf("DID OTT UPDATE\n"); */
-
+    
     const OSSL_PARAM *p;
     DID_CTX *ctx = (DID_CTX *)didctx;
 

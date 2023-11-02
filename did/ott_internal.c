@@ -322,7 +322,7 @@ fail:
 
 int ott_resolve_internal(DID_CTX *ctx, char *did)
 {
-    char hex_index[INDEX_HEX_SIZE];
+    //char hex_index[INDEX_HEX_SIZE];
     char *hex_index1;
     uint8_t index[INDEX_SIZE];
     OTT_channel ch_read;
@@ -359,7 +359,7 @@ int ott_resolve_internal(DID_CTX *ctx, char *did)
 
     set_channel_index_read(&ch_read, index);
 
-    fprintf(stdout, "---\nDID RESOLVE ...\n");
+    fprintf(stdout, "---\nPeer DID RESOLVE ...\n");
 
     ret = OTT_read(&ch_read, read_buff, &expected_size);
 
@@ -374,8 +374,9 @@ int ott_resolve_internal(DID_CTX *ctx, char *did)
     fprintf(stdout, "\n\t msg_read=%d \t", ch_read.recv_msg);
     fprintf(stdout, "\n\t bytes_read=%d \t", ch_read.recv_bytes); */
 
+    fprintf(stdout,"DID RESOLVE SUCCESSFUL\n\n");
     read_buff[ch_read.recv_bytes] = '\0';
-    fprintf(stdout, "\nPeer DID document\n");
+    fprintf(stdout, "DID document\n");
     fprintf(stdout, "%s\n", read_buff);
 
     // parsing

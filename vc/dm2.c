@@ -15,7 +15,7 @@
  *
  */
 
-#include "dm1_internal.h"
+#include "dm2_internal.h"
 #include "../ssiprov.h"
 #include <time.h>
 #include <sys/time.h>
@@ -172,7 +172,7 @@ char *dm1_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
 
     /* Starting from ctx fill the JSON object with
     credential metadata and claims. */
-    if (!dm1_fill_metadata_claim(vc, ctx))
+    if (!dm2_fill_metadata_claim(vc, ctx))
         goto fail;
 
     /* Fill ctx with proof. Some fields are
@@ -188,7 +188,7 @@ char *dm1_create(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
     }
 
     /* Generate the proof and fill the JSON object with the proof */
-    if (!dm1_fill_proof(vc, ctx, pkey))
+    if (!dm2_fill_proof(vc, ctx, pkey))
         goto fail;
 
     /* Return the serialized vc */
@@ -291,15 +291,15 @@ int dm1_verify(void *vcctx, EVP_PKEY *pkey, OSSL_PARAM params[])
 
     /* printf("Peer VC id: \"%s\"\n", ctx->id); */
 
-    if (!dm1_validate(ctx))
+    if (!dm2_validate(ctx))
         goto fail;
 
     /* Starting from ctx fill the JSON object with
     credential metadata and claims. */
-    if (!dm1_fill_metadata_claim(vc, ctx))
+    if (!dm2_fill_metadata_claim(vc, ctx))
         goto fail;
 
-    if (!dm1_verify_proof(vc, ctx, pkey)) {
+    if (!dm2_verify_proof(vc, ctx, pkey)) {
         printf("\nVC VERIFICATION FAILURE\n");
         goto fail;
     }
@@ -324,7 +324,7 @@ int dm1_deserialize(void *vcctx, char *vc_stream, OSSL_PARAM params[])
         return 0;
 
     /* parse the serialized vc and save the fields in ctx */
-    if (!dm1_cjson_parse(ctx, vc_stream))
+    if (!dm2_cjson_parse(ctx, vc_stream))
         return 0;
 
     /* return the fields of the VC through params[] */
@@ -352,12 +352,12 @@ char *dm1_serialize(void *vcctx, OSSL_PARAM params[])
 
     /* Starting from ctx fill the JSON object with
     credential metadata and claims. */
-    if (!dm1_fill_metadata_claim(vc, ctx))
+    if (!dm2_fill_metadata_claim(vc, ctx))
         goto fail;
 
     /* Starting from ctx fill the JSON object with
     proof. */
-    if (!dm1_fill_proof(vc, ctx, NULL))
+    if (!dm2_fill_proof(vc, ctx, NULL))
         goto fail;
 
     char *vc_stream = NULL;

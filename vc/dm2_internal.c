@@ -15,7 +15,7 @@
  *
  */
 
-#include "dm1_internal.h"
+#include "dm2_internal.h"
 #include <openssl/rsa.h>
 
 static int get_key_type(EVP_PKEY *key)
@@ -144,7 +144,7 @@ fail:
     return 0;
 }
 
-int dm1_cjson_parse(VC_CTX *ctx, char *vc_stream)
+int dm2_cjson_parse(VC_CTX *ctx, char *vc_stream)
 {
 
     cJSON *vc_json = cJSON_Parse((const char *)vc_stream);
@@ -275,7 +275,7 @@ fail:
 }
 
 /* fill the metadata and claim section of the VC */
-int dm1_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
+int dm2_fill_metadata_claim(cJSON *vc, VC_CTX *ctx)
 {
 
     //@context
@@ -332,7 +332,7 @@ fail:
 }
 
 /* fill the proof section of the VC*/
-int dm1_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
+int dm2_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 {
     // proof
     cJSON *proof = cJSON_CreateObject();
@@ -415,7 +415,7 @@ fail:
 }
 
 /* check the VC structure is valid */
-int dm1_validate(VC_CTX *ctx)
+int dm2_validate(VC_CTX *ctx)
 {
     time_t now = time(0);
     char curr_time[50];
@@ -445,7 +445,7 @@ int dm1_validate(VC_CTX *ctx)
 }
 
 /* check the VC proof is valid */
-int dm1_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
+int dm2_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey)
 {
     char *md_name = NULL;
     int key_type;

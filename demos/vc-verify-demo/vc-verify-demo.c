@@ -105,7 +105,7 @@ int main(int argc, char *argv[]){
         goto err;
     }
 
-    evp_vc = EVP_VC_fetch(NULL, "vc", NULL);
+    evp_vc = EVP_VC_fetch(NULL, "DM2", NULL);
 	if (evp_vc == NULL) {
         fprintf(stderr, "Error fetching VC\n");
         goto err;

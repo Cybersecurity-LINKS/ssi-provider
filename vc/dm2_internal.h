@@ -19,7 +19,7 @@
 #include "../cJSON.h"
 #include <openssl/evp.h>
 
-#define CONTEXT_VC_V1          "https://www.w3.org/2018/credentials/v1"
+#define CONTEXT_VC_V1          "https://www.w3.org/2018/credentials/v2"
 #define VC_TYPE                "VerifiableCredential"
 #define VC_PURPOSE             "assertionMethod"
 
@@ -54,12 +54,12 @@ typedef enum {
     Ed25519VerificationKey2023,         //2
 } KEY_TYPES;
 
-int dm1_cjson_parse(VC_CTX *ctx, char *vc_stream);
+int dm2_cjson_parse(VC_CTX *ctx, char *vc_stream);
 
-int dm1_fill_metadata_claim(cJSON *vc, VC_CTX *ctx);
+int dm2_fill_metadata_claim(cJSON *vc, VC_CTX *ctx);
 
-int dm1_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
+int dm2_fill_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
 
-int dm1_validate(VC_CTX *ctx);
+int dm2_validate(VC_CTX *ctx);
 
-int dm1_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);
+int dm2_verify_proof(cJSON *vc, VC_CTX *ctx, EVP_PKEY *pkey);

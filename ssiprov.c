@@ -29,7 +29,7 @@ static const OSSL_ALGORITHM ssi_did[] = {
 
 
 static const OSSL_ALGORITHM ssi_vc[] = {
-    {"DM1:dm1", "provider=ssi", dm1_functions},
+    {"DM2:dm2", "provider=ssi", dm1_functions},
     {NULL, NULL, NULL}};
 
 static const OSSL_PARAM *ssi_gettable_params(void *provctx)
