@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+	echo "USAGE: $0 [PORT]"
+	exit 0
+fi
+
+PORT=$1
+
+TRUST_ROOT=cert/root.crt
+
+DID=$(cat vc/did.txt)
+DID_PKEY=vc/did-private.pem
+
+CERT=cert/cert.pem
+CERT_PKEY=cert/private.pem
+CHAIN=cert/cert-chain.crt
+
+openssl s_server -accept $PORT -www -verify 1 -cert $CERT -key $CERT_PKEY -CAfile $TRUST_ROOT -chainCAfile $CHAIN -did_key $DID_PKEY -did $DID -did_methods ott,eth -naccept 1 -num_tickets 0

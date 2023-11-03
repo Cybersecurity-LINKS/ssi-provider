@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+	echo "USAGE: $0 [HOST] [PORT]"
+	exit 0
+fi
+
+HOST=$1
+PORT=$2
+
+VCISSUER=vc/trusted-issuers
+TRUST_ROOT=cert/root.crt
+
+DID=$(cat vc/did.txt)
+DID_PKEY=vc/did-private.pem
+VC=vc/vc.txt
+
+CERT=cert/cert.pem
+CERT_PKEY=cert/private.pem
+CHAIN=cert/cert-chain.crt
+
+echo "Q" | openssl s_client -connect $HOST:$PORT -cert $CERT -key $CERT_PKEY -CAfile $TRUST_ROOT -chainCAfile $CHAIN -did_key $DID_PKEY -did $DID -vc $VC -VCIfile $VCISSUER -did_methods ott,eth

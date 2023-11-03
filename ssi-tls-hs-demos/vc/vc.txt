@@ -1,0 +1,18 @@
+{
+	"@context":	"https://www.w3.org/2018/credentials/v2",
+	"id":	"http://example.com/credentials/1",
+	"type":	"VerifiableCredential",
+	"issuer":	"http://example.com/issuer/1",
+	"issuanceDate":	"2023-11-02T09:43:27Z",
+	"expirationDate":	"2025-01-01T12:00:00Z",
+	"credentialSubject":	{
+		"id":	"did:ott:5F49AA8FD6FD790AE3BEE31B626B033E8492B0D4779801B4D9BB7221DA8A9C23:6f32dc162ba5f0bfe635982110e6f300c69d3b64483a34d5162a978f55263829"
+	},
+	"proof":	{
+		"type":	"RsaVerificationKey2023",
+		"created":	" 2023-11-02T09:43:27Z",
+		"proofPurpose":	"assertionMethod",
+		"verificationMethod":	"did:ott:7E70CADF4D4E4F2958C125B48D49BB977CC7E34F8947908AEA196260283A2862#key-1",
+		"proofValue":	"F391LjQ7TwoLkNQ9bm/ZgYp+t5SLZuim92PYrkDCfkdAVhF4sW1EeK9GXgRUqRdABvQrEhtDOzHLI4HC0c5yqzipHeVC60Y0GgOyQqyoM0p8qfEHFk9ll5fxIwoBN8+3rFe6Iv7Pkb7E7Ei4jXLA03K7yE0eT42qDFnglYTmuHJeWvxaHu8K/AyfRbU1Dxu0BTjJgyWefDBHT+ZVg/Wyrm/QzKB0gwgNO5U0YpVnznEPZ2p2s8BydMb2PPXSgqR+SfyatSKvLUMpQqSHKrBQg3Qim9UyKJ/9l7Odw4hh7PEgNsERNDZ2b6RIr4iYceVgGE7RWc3IfpAhBpi4E7NhsQ=="
+	}
+}

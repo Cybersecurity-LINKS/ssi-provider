@@ -2,7 +2,7 @@
 
 ## Build
 
-Before building, edit the first two lines of the `Makefile` where `OPENSSL_DIR=/path/to/openssl` and `OPENSSL_LIB` is either equal to `lib` for a 32-bit OS or `lib64` for a 64-bit OS. Then run
+Edit the first two lines of the `Makefile` where `OPENSLL_INSTALL_DIR=/path/to/openssl` and `OPENSSL_LIB` is either equal to `lib` for a 32-bit OS or `lib64` for a 64-bit OS. Then run
 
     make
 
